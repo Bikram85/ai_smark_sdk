@@ -4,7 +4,7 @@ import com.market.alphavantage.dto.RealtimeOptionDTO;
 
 public interface RealtimeOptionService {
 
-    void loadRealtimeOptions(String symbol);
+    void loadRealtimeOptions();
 
     RealtimeOptionDTO getRealtimeOptions(String symbol);
 }

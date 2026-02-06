@@ -4,7 +4,7 @@ import com.market.alphavantage.entity.IncomeStatement;
 
 public interface IncomeStatementService {
 
-    void loadIncomeStatement(String symbol);
+    void loadIncomeStatement();
 
     IncomeStatement getIncomeStatement(String symbol);
 }

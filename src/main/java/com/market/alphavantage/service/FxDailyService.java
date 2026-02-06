@@ -4,7 +4,7 @@ import com.market.alphavantage.dto.FxDailyDTO;
 
 public interface FxDailyService {
 
-    void loadFxDaily(String fromSymbol, String toSymbol);
+    void loadFxDaily();
 
     FxDailyDTO getFxDaily(String fromSymbol, String toSymbol);
 }

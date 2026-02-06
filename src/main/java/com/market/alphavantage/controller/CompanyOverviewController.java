@@ -12,10 +12,10 @@ public class CompanyOverviewController {
 
     private final CompanyOverviewService service;
 
-    @PostMapping("/load/{symbol}")
-    public String load(@PathVariable String symbol) {
-        service.loadOverview(symbol);
-        return "Overview loaded: " + symbol;
+    @GetMapping("/load")
+    public String load() {
+        service.loadOverview();
+        return "Overview loaded: ";
     }
 
     @GetMapping("/{symbol}")

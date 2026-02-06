@@ -14,10 +14,10 @@ public class RealtimeOptionController {
 
     private final RealtimeOptionService service;
 
-    @PostMapping("/load/{symbol}")
-    public ResponseEntity<String> load(@PathVariable String symbol) {
-        service.loadRealtimeOptions(symbol.toUpperCase());
-        return ResponseEntity.ok("Realtime options loaded for " + symbol);
+    @PostMapping("/load")
+    public ResponseEntity<String> load() {
+        service.loadRealtimeOptions();
+        return ResponseEntity.ok("Realtime options loaded for " );
     }
 
     @GetMapping("/{symbol}")
@@ -29,7 +29,7 @@ public class RealtimeOptionController {
 
     @PutMapping("/reload/{symbol}")
     public ResponseEntity<String> reload(@PathVariable String symbol) {
-        service.loadRealtimeOptions(symbol.toUpperCase());
+        //service.loadRealtimeOptions(symbol.toUpperCase());
         return ResponseEntity.ok("Realtime options reloaded for " + symbol);
     }
 }

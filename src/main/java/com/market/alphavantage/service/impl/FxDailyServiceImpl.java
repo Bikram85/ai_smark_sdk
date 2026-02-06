@@ -32,8 +32,23 @@ public class FxDailyServiceImpl implements FxDailyService {
     @Value("${alphavantage.apiKey}")
     private String apiKey;
 
+
     @Override
-    public void loadFxDaily(String fromSymbol, String toSymbol) {
+    public void loadFxDaily() {
+        fetchDetails("JPY","USD");
+        fetchDetails("AED","USD");
+        fetchDetails("CAD","USD");
+        fetchDetails("CHF","USD");
+        fetchDetails("EUR","USD");
+        fetchDetails("GBP","USD");
+        fetchDetails("INR","USD");
+        fetchDetails("RUB","USD");
+        fetchDetails("SAR","USD");
+
+    }
+
+
+    private void fetchDetails(String fromSymbol, String toSymbol) {
         String url = baseUrl
                 + "?function=FX_DAILY"
                 + "&from_symbol=" + fromSymbol.toUpperCase()

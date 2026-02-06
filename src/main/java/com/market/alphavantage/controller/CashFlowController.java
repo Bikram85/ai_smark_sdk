@@ -16,10 +16,10 @@ public class CashFlowController {
 
     private final CashFlowService service;
 
-    @PostMapping("/load/{symbol}")
-    public ResponseEntity<String> load(@PathVariable String symbol) {
-        service.loadCashFlow(symbol.toUpperCase());
-        return ResponseEntity.ok("Cash Flow loaded for " + symbol);
+    @GetMapping("/load")
+    public ResponseEntity<String> load() {
+        service.loadCashFlow();
+        return ResponseEntity.ok("Cash Flow loaded for " );
     }
 
     @GetMapping("/{symbol}")
@@ -31,7 +31,7 @@ public class CashFlowController {
 
     @PutMapping("/reload/{symbol}")
     public ResponseEntity<String> reload(@PathVariable String symbol) {
-        service.loadCashFlow(symbol.toUpperCase());
+        service.fetchDetails(symbol.toUpperCase());
         return ResponseEntity.ok("Cash Flow reloaded for " + symbol);
     }
 }

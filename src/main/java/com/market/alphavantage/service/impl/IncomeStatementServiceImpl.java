@@ -1,7 +1,9 @@
 package com.market.alphavantage.service.impl;
 
 import com.market.alphavantage.entity.IncomeStatement;
+import com.market.alphavantage.entity.Symbol;
 import com.market.alphavantage.repository.IncomeStatementRepository;
+import com.market.alphavantage.repository.SymbolRepository;
 import com.market.alphavantage.service.IncomeStatementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +15,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +24,7 @@ public class IncomeStatementServiceImpl implements IncomeStatementService {
 
     private final IncomeStatementRepository repository;
     private final RestTemplate restTemplate;
+    private final SymbolRepository symbolRepo;
 
     @Value("${alphavantage.apiKey}")
     private String apiKey;
@@ -28,8 +32,59 @@ public class IncomeStatementServiceImpl implements IncomeStatementService {
     @Value("${alphavantage.baseUrl}")
     private String baseUrl;
 
+
     @Override
-    public void loadIncomeStatement(String symbol) {
+    public void loadIncomeStatement() {
+
+        List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
+
+        int total = stocks.size();
+
+        AtomicInteger processed = new AtomicInteger(0);
+        AtomicInteger success = new AtomicInteger(0);
+        AtomicInteger failed = new AtomicInteger(0);
+
+        stocks.forEach(symbol -> {
+            processSymbol(symbol.getSymbol(), "Stock",
+                    processed, success, failed, total);
+        });
+
+        System.out.println("\n===== SUMMARY =====");
+        System.out.println("Total symbols : " + total);
+        System.out.println("Success       : " + success.get());
+        System.out.println("Failed        : " + failed.get());
+    }
+
+    private void processSymbol(String symbol,
+                               String type,
+                               AtomicInteger processed,
+                               AtomicInteger success,
+                               AtomicInteger failed,
+                               int total) {
+
+        int current = processed.incrementAndGet();
+
+        try {
+            fetchDetails(symbol);
+            success.incrementAndGet();
+
+            System.out.println("loadIncomeStatement Processed "
+                    + current + "/" + total
+                    + " SUCCESS: " + symbol);
+
+        } catch (Exception ex) {
+            failed.incrementAndGet();
+
+            System.err.println("loadIncomeStatement Processed "
+                    + current + "/" + total
+                    + " FAILED: " + symbol
+                    + " Reason: " + ex.getMessage());
+        }
+    }
+
+
+
+    private void fetchDetails(String symbol) {
 
         String url = baseUrl +
                 "?function=INCOME_STATEMENT" +

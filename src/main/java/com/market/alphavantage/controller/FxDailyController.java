@@ -14,11 +14,10 @@ public class FxDailyController {
 
     private final FxDailyService service;
 
-    @PostMapping("/load")
-    public ResponseEntity<String> load(@RequestParam String fromSymbol,
-                                       @RequestParam String toSymbol) {
-        service.loadFxDaily(fromSymbol, toSymbol);
-        return ResponseEntity.ok("FX Daily loaded for " + fromSymbol + " -> " + toSymbol);
+    @GetMapping("/load")
+    public ResponseEntity<String> load() {
+        service.loadFxDaily();
+        return ResponseEntity.ok("FX Daily loaded for");
     }
 
     @GetMapping("/get")

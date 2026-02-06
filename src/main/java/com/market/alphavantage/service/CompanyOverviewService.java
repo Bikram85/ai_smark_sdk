@@ -5,7 +5,7 @@ import com.market.alphavantage.dto.CompanyOverviewDTO;
 
 public interface CompanyOverviewService {
 
-    void loadOverview(String symbol);
+    void loadOverview();
 
     CompanyOverviewDTO getOverview(String symbol);
 }

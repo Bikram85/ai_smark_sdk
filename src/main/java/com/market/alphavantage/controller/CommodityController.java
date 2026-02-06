@@ -14,11 +14,20 @@ public class CommodityController {
 
     private final CommodityService service;
 
-    @PostMapping("/load")
-    public ResponseEntity<String> load(@RequestParam String function,
-                                       @RequestParam String interval) {
-        service.loadCommodity(function, interval);
-        return ResponseEntity.ok("Commodity data loaded for " + function + " [" + interval + "]");
+    @GetMapping("/load")
+    public ResponseEntity<String> load() {
+        service.loadCommodity("WTI", "daily");
+        service.loadCommodity("BRENT", "daily");
+        service.loadCommodity("NATURAL_GAS", "daily");
+        service.loadCommodity("COPPER", "daily");
+        service.loadCommodity("ALUMINUM", "daily");
+        service.loadCommodity("WHEAT", "daily");
+        service.loadCommodity("CORN", "daily");
+        service.loadCommodity("COTTON", "daily");
+        service.loadCommodity("SUGAR", "daily");
+        service.loadCommodity("COFFEE", "daily");
+        service.loadCommodity("ALL_COMMODITIES", "daily");
+        return ResponseEntity.ok("Commodity data loaded for ");
     }
 
     @GetMapping("/get")

@@ -38,15 +38,16 @@ public class TopGainersLosersServiceImpl implements TopGainersLosersService {
         if (response == null) return;
 
         // Top gainers and losers typically have keys: "topGainers", "topLosers"
-        saveList("top_gainers", (List<Map<String, String>>) response.get("topGainers"));
-        saveList("top_losers", (List<Map<String, String>>) response.get("topLosers"));
+        saveList("top_gainers", (List<Map<String, String>>) response.get("topGainers"),"topGainers");
+        saveList("top_losers", (List<Map<String, String>>) response.get("topLosers"),"topLosers");
     }
 
-    private void saveList(String id, List<Map<String, String>> list) {
+    private void saveList(String id, List<Map<String, String>> list, String type) {
         if (list == null) return;
 
         TopGainersLosers entity = new TopGainersLosers();
         entity.setId(id);
+        entity.setType(type);
 
         List<String> symbols = new ArrayList<>();
         List<String> names = new ArrayList<>();

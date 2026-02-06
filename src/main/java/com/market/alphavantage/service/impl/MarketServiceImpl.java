@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @RequiredArgsConstructor
@@ -62,12 +63,59 @@ public class MarketServiceImpl implements MarketService {
     @Override
     public void loadDailyPrices() {
 
-        symbolRepo.findByAssetType("Stock").stream()
-                .forEach(symbol -> fetchDaily(symbol.getSymbol(), "Stock"));
+        List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
+        List<Symbol> etfs = symbolRepo.findByAssetType("ETF");
 
-        symbolRepo.findByAssetType("ETF").stream()
-                .forEach(symbol -> fetchDaily(symbol.getSymbol(), "ETF"));
+        int total = stocks.size() + etfs.size();
+
+        AtomicInteger processed = new AtomicInteger(0);
+        AtomicInteger success = new AtomicInteger(0);
+        AtomicInteger failed = new AtomicInteger(0);
+
+        stocks.forEach(symbol -> {
+            processSymbol(symbol.getSymbol(), "Stock",
+                    processed, success, failed, total);
+        });
+
+        etfs.forEach(symbol -> {
+            processSymbol(symbol.getSymbol(), "ETF",
+                    processed, success, failed, total);
+        });
+
+        System.out.println("\n===== SUMMARY =====");
+        System.out.println("Total symbols : " + total);
+        System.out.println("Success       : " + success.get());
+        System.out.println("Failed        : " + failed.get());
     }
+
+    private void processSymbol(String symbol,
+                               String type,
+                               AtomicInteger processed,
+                               AtomicInteger success,
+                               AtomicInteger failed,
+                               int total) {
+
+        int current = processed.incrementAndGet();
+
+        try {
+            fetchDaily(symbol, type);
+            success.incrementAndGet();
+
+            System.out.println("Processed "
+                    + current + "/" + total
+                    + " SUCCESS: " + symbol);
+
+        } catch (Exception ex) {
+            failed.incrementAndGet();
+
+            System.err.println("Processed "
+                    + current + "/" + total
+                    + " FAILED: " + symbol
+                    + " Reason: " + ex.getMessage());
+        }
+    }
+
+
 
 
     private void fetchDaily(String symbol, String type) {

@@ -14,10 +14,10 @@ public class BalanceSheetController {
 
     private final BalanceSheetService service;
 
-    @PostMapping("/load/{symbol}")
-    public ResponseEntity<String> load(@PathVariable String symbol) {
-        service.loadBalanceSheet(symbol.toUpperCase());
-        return ResponseEntity.ok("Balance sheet loaded for " + symbol);
+    @GetMapping("/load")
+    public ResponseEntity<String> load() {
+        service.loadBalanceSheet();
+        return ResponseEntity.ok("Balance sheet loaded for " );
     }
 
     @GetMapping("/{symbol}")
@@ -29,7 +29,7 @@ public class BalanceSheetController {
 
     @PutMapping("/reload/{symbol}")
     public ResponseEntity<String> reload(@PathVariable String symbol) {
-        service.loadBalanceSheet(symbol.toUpperCase());
+        service.fetchDetails(symbol.toUpperCase());
         return ResponseEntity.ok("Balance sheet reloaded for " + symbol);
     }
 }

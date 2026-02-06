@@ -6,7 +6,9 @@ import com.market.alphavantage.dto.CashFlowDTO;
 
 public interface CashFlowService {
 
-    void loadCashFlow(String symbol);
+    void loadCashFlow();
 
     CashFlowDTO getCashFlow(String symbol);
+
+    void fetchDetails(String symbol);
 }

@@ -18,15 +18,13 @@ public class IncomeStatementController {
     /**
      * Load data from Alpha Vantage and save
      */
-    @PostMapping("/load/{symbol}")
+    @GetMapping("/load")
     public ResponseEntity<String> loadIncomeStatement(
-            @PathVariable String symbol) {
+           ) {
 
-        service.loadIncomeStatement(symbol.toUpperCase());
-
+        service.loadIncomeStatement();
         return ResponseEntity.ok(
-                "Income statement loaded for " + symbol
-        );
+                "Income statement loaded for ");
     }
 
     /**
@@ -52,7 +50,7 @@ public class IncomeStatementController {
     public ResponseEntity<String> reloadIncomeStatement(
             @PathVariable String symbol) {
 
-        service.loadIncomeStatement(symbol.toUpperCase());
+       // service.loadIncomeStatement(symbol.toUpperCase());
 
         return ResponseEntity.ok(
                 "Income statement refreshed for " + symbol

@@ -17,6 +17,8 @@ public class TopGainersLosers {
     @Id
     private String id; // e.g. "top_gainers" or "top_losers"
 
+
+    private String type;
     @ElementCollection
     private List<String> symbol;
 

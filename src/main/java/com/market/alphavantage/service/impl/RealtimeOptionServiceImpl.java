@@ -2,7 +2,9 @@ package com.market.alphavantage.service.impl;
 
 import com.market.alphavantage.dto.RealtimeOptionDTO;
 import com.market.alphavantage.entity.RealtimeOption;
+import com.market.alphavantage.entity.Symbol;
 import com.market.alphavantage.repository.RealtimeOptionRepository;
+import com.market.alphavantage.repository.SymbolRepository;
 import com.market.alphavantage.service.RealtimeOptionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +16,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +25,7 @@ public class RealtimeOptionServiceImpl implements RealtimeOptionService {
 
     private final RealtimeOptionRepository repository;
     private final RestTemplate restTemplate;
+    private final SymbolRepository symbolRepo;
 
     @Value("${alphavantage.baseUrl}")
     private String baseUrl;
@@ -30,7 +34,56 @@ public class RealtimeOptionServiceImpl implements RealtimeOptionService {
     private String apiKey;
 
     @Override
-    public void loadRealtimeOptions(String symbol) {
+    public void loadRealtimeOptions() {
+
+        List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
+
+        int total = stocks.size() ;
+
+        AtomicInteger processed = new AtomicInteger(0);
+        AtomicInteger success = new AtomicInteger(0);
+        AtomicInteger failed = new AtomicInteger(0);
+
+        stocks.forEach(symbol -> {
+            processSymbol(symbol.getSymbol(), "Stock",
+                    processed, success, failed, total);
+        });
+
+        System.out.println("\n===== SUMMARY =====");
+        System.out.println("Total symbols : " + total);
+        System.out.println("Success       : " + success.get());
+        System.out.println("Failed        : " + failed.get());
+    }
+
+    private void processSymbol(String symbol,
+                               String type,
+                               AtomicInteger processed,
+                               AtomicInteger success,
+                               AtomicInteger failed,
+                               int total) {
+
+        int current = processed.incrementAndGet();
+
+        try {
+            fetchDetails(symbol);
+            success.incrementAndGet();
+
+            System.out.println("loadRealtimeOptions Processed "
+                    + current + "/" + total
+                    + " SUCCESS: " + symbol);
+
+        } catch (Exception ex) {
+            failed.incrementAndGet();
+
+            System.err.println("loadRealtimeOptions Processed "
+                    + current + "/" + total
+                    + " FAILED: " + symbol
+                    + " Reason: " + ex.getMessage());
+        }
+    }
+
+
+    private void fetchDetails(String symbol) {
 
         String url = baseUrl
                 + "?function=REALTIME_OPTIONS"
