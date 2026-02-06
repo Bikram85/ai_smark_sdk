@@ -1,4 +1,4 @@
-package com.market.alphavantage.service;
+package com.market.alphavantage.service.impl;
 
 import com.market.alphavantage.entity.ETFPrice;
 import com.market.alphavantage.entity.StockPrice;
@@ -6,6 +6,7 @@ import com.market.alphavantage.entity.Symbol;
 import com.market.alphavantage.repository.ETFPriceRepository;
 import com.market.alphavantage.repository.StockPriceRepository;
 import com.market.alphavantage.repository.SymbolRepository;
+import com.market.alphavantage.service.MarketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -39,7 +40,7 @@ public class MarketServiceImpl implements MarketService {
     // API 1: Listing status
     @Override
     public void loadListingStatus() {
-        String url = baseUrl + "?function=LISTING_STATUS&apikey=" + apiKey;
+        String url = baseUrl + "?function=LISTING_STATUS&&entitlement=delayed&apikey=" + apiKey;
         String csv = restTemplate.getForObject(url, String.class);
 
 
@@ -62,11 +63,9 @@ public class MarketServiceImpl implements MarketService {
     public void loadDailyPrices() {
 
         symbolRepo.findByAssetType("Stock").stream()
-                .limit(1) // avoid rate limits
                 .forEach(symbol -> fetchDaily(symbol.getSymbol(), "Stock"));
 
         symbolRepo.findByAssetType("ETF").stream()
-                .limit(1) // avoid rate limits
                 .forEach(symbol -> fetchDaily(symbol.getSymbol(), "ETF"));
     }
 
@@ -74,8 +73,9 @@ public class MarketServiceImpl implements MarketService {
     private void fetchDaily(String symbol, String type) {
         String url = baseUrl
                 + "?function=TIME_SERIES_DAILY"
+                + "&entitlement=delayed"
                 + "&symbol=" + symbol
-                + "&outputsize=compact"
+                + "&outputsize=full"
                 + "&apikey=" + apiKey;
 
 

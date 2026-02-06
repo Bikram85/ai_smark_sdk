@@ -1,4 +1,4 @@
-package com.market.alphavantage.service;
+package com.market.alphavantage.service.impl;
 
 
 
@@ -6,6 +6,7 @@ import com.market.alphavantage.dto.EarningsCalendarDTO;
 import com.market.alphavantage.entity.EarningsCalendar;
 import com.market.alphavantage.repository.EarningsCalendarRepository;
 
+import com.market.alphavantage.service.EarningsCalendarService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

@@ -16,5 +16,5 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
 alphavantage:
-  apiKey: JI8FEJI6JZJV4M8U
+  apiKey: CC6Y69TWWQUMRPOV
   baseUrl: https://www.alphavantage.co/query

@@ -1,4 +1,4 @@
-package com.market.alphavantage.service;
+package com.market.alphavantage.service.impl;
 
 import com.market.alphavantage.dto.GoldSilverHistoryDTO;
 import com.market.alphavantage.entity.GoldSilverHistory;

@@ -1,7 +1,8 @@
-package com.market.alphavantage.service;
+package com.market.alphavantage.service.impl;
 
 import com.market.alphavantage.entity.IncomeStatement;
 import com.market.alphavantage.repository.IncomeStatementRepository;
+import com.market.alphavantage.service.IncomeStatementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

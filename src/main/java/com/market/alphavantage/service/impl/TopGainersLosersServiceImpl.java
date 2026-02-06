@@ -1,9 +1,10 @@
-package com.market.alphavantage.service;
+package com.market.alphavantage.service.impl;
 
 import com.market.alphavantage.dto.TopGainersLosersDTO;
 import com.market.alphavantage.entity.TopGainersLosers;
 import com.market.alphavantage.repository.TopGainersLosersRepository;
 
+import com.market.alphavantage.service.TopGainersLosersService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
