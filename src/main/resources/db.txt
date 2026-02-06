@@ -1,0 +1,179 @@
+CREATE TABLE stocks.stock_info
+(
+	symbol varchar(255),
+	name varchar(255),
+	lastsale varchar(255),
+	netchange varchar(255),
+	pctchange varchar(255),
+	marketCap varchar(255),
+	country varchar(255),
+	ipoyear varchar(255),
+	volume varchar(255),
+	sector varchar(255),
+	industry varchar(255),
+	url varchar(255)
+
+)
+
+CREATE TABLE ipodata
+(
+	proposedTickerSymbol varchar(255),
+	dealID varchar(255),
+	companyName varchar(255),
+	proposedExchange varchar(255),
+	proposedSharePrice varchar(255),
+	sharesOffered varchar(255),
+	pricedDate varchar(255),
+	dollarValueOfSharesOffered varchar(255),
+	dealStatus varchar(255),
+	expectedPriceDate varchar(255),
+	filedDate varchar(255),
+	withdrawDate varchar(255),
+	status varchar(255),
+	createDate varchar(255),
+	lastUpdateDate varchar(255)
+
+)
+
+CREATE TABLE corporateactions
+(
+	symbol varchar(255),
+	name varchar(255),
+	ratio varchar(255),
+	payable_date varchar(255),
+	execution_date varchar(255),
+	announced_date varchar(255)
+
+
+)
+
+
+CREATE TABLE stocks.Customer
+(
+	id integer NOT null,
+	name varchar(255)
+
+)
+
+CREATE TABLE public.historic_annual_data
+(
+    symbol character varying(255),
+    annual_total_assets text[],
+    annual_current_assets text[],
+    annual_total_non_current_assets text[],
+    annual_total_liabilities_net_minority_interest text[],
+    annual_working_capital text[],
+    annual_total_debt text[],
+    annual_dates text[],
+    annual_total_expenses text[],
+    annual_total_revenue text[],
+    annual_net_income text[],
+    annual_total_operating_income_as_reported text[],
+    annual_normalized_income text[],
+    annual_ebit text[],
+    annual_normalized_eBITDA text[],
+    annual_basic_ePS text[],
+    annual_basic_average_shares text[],
+    annual_stockholders_equity text[],
+    "createDate" character varying(255),
+    "updateDate" character varying(255)
+);
+
+CREATE TABLE public.historic_quarterly_data
+(
+    symbol character varying(255),
+    quad_dates text[],
+    quarterly_total_expenses text[],
+    quarterly_total_revenue text[],
+    quarterly_net_income text[],
+    quarterly_total_operating_income_as_reported text[],
+    quarterly_normalized_income text[],
+    quarterly_eBIT text[],
+    quarterly_normalized_eBITDA text[],
+    quarterly_basic_ePS text[],
+    quarterly_basic_average_shares text[],
+    quarterly_total_assets text[],
+    quarterly_current_assets text[],
+    quarterly_total_non_current_assets text[],
+    quarterly_total_liabilities_net_minority_interest text[],
+    quarterly_working_capital text[],
+    quarterly_total_debt text[],
+    quarterly_share_value text[],
+	quarterly_share_pe_list text[],
+    quarterly_stockholders_equity text[],
+    historic_dates text[],
+    createDate character varying(255),
+    updateDate character varying(255)
+);
+
+ALTER TABLE IF EXISTS public.historic_annual_data
+    OWNER to postgres;
+
+
+INSERT INTO stocks.Customer (id, name)
+VALUES (2, 'hii');
+
+select * from stocks.Customer
+
+select * from companies
+
+CREATE TABLE Companies
+(
+	symbol varchar(255),
+	name varchar(255),
+	lastsale varchar(255),
+	netchange varchar(255),
+	pctchange varchar(255),
+	volume varchar(255),
+	marketcap varchar(255),
+	country varchar(255),
+	ipoyear varchar(255),
+	industry varchar(255),
+	sector varchar(255),
+	url varchar(255)
+
+
+)
+
+CREATE TABLE public.analysis
+(
+    symbol character varying(255),
+    analysis_data json
+)
+
+
+https://www.bezkoder.com/spring-boot-postgresql-example/
+
+https://query1.finance.yahoo.com/v7/finance/quote?formatted=true&crumb=f7iTv47R1nq&lang=en-US&region=US&symbols=AAPL&fields=messageBoardId%2ClongName%2CshortName%2CmarketCap%2CunderlyingSymbol%2CunderlyingExchangeSymbol%2CheadSymbolAsString%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2Cuuid%2CregularMarketOpen%2CfiftyTwoWeekLow%2CfiftyTwoWeekHigh%2CtoCurrency%2CfromCurrency%2CtoExchange%2CfromExchange%2CcorporateActions&corsDomain=finance.yahoo.com
+
+https://query1.finance.yahoo.com/v7/finance/spark?symbols=%5ERUT&range=1d&interval=5m&indicators=close&includeTimestamps=false&includePrePost=false&corsDomain=finance.yahoo.com&.tsrc=finance
+
+
+https://query1.finance.yahoo.com/v7/finance/spark?symbols=CL%3DF&range=1d&interval=5m&indicators=close&includeTimestamps=false&includePrePost=false&corsDomain=finance.yahoo.com&.tsrc=finance
+
+Historic Data -
+https://query1.finance.yahoo.com/v7/finance/spark?symbols=%5ERUT&range=1d&interval=5m&indicators=close&includeTimestamps=false&includePrePost=false&corsDomain=finance.yahoo.com&.tsrc=finance
+
+To get the csv file, use this for Apple
+
+https://query1.finance.yahoo.com/v7/finance/download/AAPL?period1=From&period2=To&interval=1d&events=div&includeAdjustedClose=true
+
+Try this for the dividends during last year again using Apple as an example
+
+https://api.nasdaq.com/api/quote/AAPL/summary?assetclass=stocks
+
+
+https://query1.finance.yahoo.com/v7/finance/download/AAPL?period1=1594598400&period2=1626134400&interval=1d&events=div&includeAdjustedClose=true
+
+
+DELETE FROM stock_price
+ WHERE symbol NOT IN (SELECT f.symbol
+                        FROM companies f)
+
+
+
+DELETE FROM analytics_data
+ WHERE symbol_id NOT IN (SELECT f.symbol
+                        FROM companies f)
+
+                        select * from active_tickers where market ='fx' and ticker  like '%USD%'
