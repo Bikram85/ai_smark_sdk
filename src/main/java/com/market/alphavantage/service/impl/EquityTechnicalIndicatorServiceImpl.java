@@ -2,7 +2,9 @@ package com.market.alphavantage.service.impl;
 
 import com.market.alphavantage.dto.EquityTechnicalIndicatorDTO;
 import com.market.alphavantage.entity.EquityTechnicalIndicator;
+import com.market.alphavantage.entity.Symbol;
 import com.market.alphavantage.repository.EquityTechnicalIndicatorRepository;
+import com.market.alphavantage.repository.SymbolRepository;
 import com.market.alphavantage.service.EquityTechnicalIndicatorService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +17,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class EquityTechnicalIndicatorServiceImpl implements EquityTechnicalIndic
 
     private final EquityTechnicalIndicatorRepository repository;
     private final RestTemplate restTemplate;
+    private final SymbolRepository symbolRepo;
 
     @Value("${alphavantage.baseUrl}")
     private String baseUrl;
@@ -30,8 +34,63 @@ public class EquityTechnicalIndicatorServiceImpl implements EquityTechnicalIndic
     @Value("${alphavantage.apiKey}")
     private String apiKey;
 
+
     @Override
-    public void loadSMA(String symbol, String interval, Integer timePeriod, String seriesType) {
+    public void loadSMA() {
+
+        List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
+
+        int total = stocks.size();
+
+        AtomicInteger processed = new AtomicInteger(0);
+        AtomicInteger success = new AtomicInteger(0);
+        AtomicInteger failed = new AtomicInteger(0);
+
+        stocks.forEach(symbol -> {
+            processSymbol(symbol.getSymbol(), "Stock",
+                    processed, success, failed, total);
+        });
+
+
+        System.out.println("\n===== SUMMARY =====");
+        System.out.println("Total symbols : " + total);
+        System.out.println("Success       : " + success.get());
+        System.out.println("Failed        : " + failed.get());
+    }
+
+    private void processSymbol(String symbol,
+                               String type,
+                               AtomicInteger processed,
+                               AtomicInteger success,
+                               AtomicInteger failed,
+                               int total) {
+
+        int current = processed.incrementAndGet();
+
+        try {
+            fetchDetails(symbol,"daily",20,"close");
+            fetchDetails(symbol,"daily",50,"close");
+            fetchDetails(symbol,"daily",100,"close");
+            fetchDetails(symbol,"daily",200,"close");
+
+            success.incrementAndGet();
+
+            System.out.println("loadSMA Processed "
+                    + current + "/" + total
+                    + " SUCCESS: " + symbol);
+
+        } catch (Exception ex) {
+            failed.incrementAndGet();
+
+            System.err.println("loadSMA Processed "
+                    + current + "/" + total
+                    + " FAILED: " + symbol
+                    + " Reason: " + ex.getMessage());
+        }
+    }
+
+
+    private void fetchDetails(String symbol, String interval, Integer timePeriod, String seriesType) {
         String url = baseUrl
                 + "?function=SMA"
                 + "&symbol=" + symbol.toUpperCase()

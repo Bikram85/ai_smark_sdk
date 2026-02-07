@@ -16,17 +16,7 @@ public class CommodityController {
 
     @GetMapping("/load")
     public ResponseEntity<String> load() {
-        service.loadCommodity("WTI", "daily");
-        service.loadCommodity("BRENT", "daily");
-        service.loadCommodity("NATURAL_GAS", "daily");
-        service.loadCommodity("COPPER", "daily");
-        service.loadCommodity("ALUMINUM", "daily");
-        service.loadCommodity("WHEAT", "daily");
-        service.loadCommodity("CORN", "daily");
-        service.loadCommodity("COTTON", "daily");
-        service.loadCommodity("SUGAR", "daily");
-        service.loadCommodity("COFFEE", "daily");
-        service.loadCommodity("ALL_COMMODITIES", "daily");
+        service.loadCommodity();
         return ResponseEntity.ok("Commodity data loaded for ");
     }
 

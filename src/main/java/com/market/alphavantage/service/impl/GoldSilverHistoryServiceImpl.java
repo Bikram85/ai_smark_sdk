@@ -30,8 +30,24 @@ public class GoldSilverHistoryServiceImpl implements GoldSilverHistoryService {
     @Value("${alphavantage.apiKey}")
     private String apiKey;
 
+
+    private static final String OCURRENCE = "daily";
+
+
+    private static final List<String> GOLDSILVER_SYMBOLS = List.of(
+            "GOLD",
+            "SILVER"
+    );
+
     @Override
-    public void loadHistory(String symbol, String interval) {
+    public void loadHistory() {
+        GOLDSILVER_SYMBOLS.forEach(symbol ->
+                fetchDetails(symbol, OCURRENCE)
+        );
+    }
+
+
+    private void fetchDetails(String symbol, String interval) {
         String url = baseUrl
                 + "?function=GOLD_SILVER_HISTORY"
                 + "&symbol=" + symbol.toUpperCase()

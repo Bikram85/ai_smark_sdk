@@ -4,7 +4,7 @@ import com.market.alphavantage.dto.CommodityDTO;
 
 public interface CommodityService {
 
-    void loadCommodity(String function, String interval);
+    void loadCommodity();
 
     CommodityDTO getCommodity(String function, String interval);
 }

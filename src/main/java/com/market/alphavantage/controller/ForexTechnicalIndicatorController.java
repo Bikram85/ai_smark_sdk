@@ -15,12 +15,9 @@ public class ForexTechnicalIndicatorController {
     private final ForexTechnicalIndicatorService service;
 
     @PostMapping("/load")
-    public ResponseEntity<String> load(@RequestParam String symbol,
-                                       @RequestParam String interval,
-                                       @RequestParam Integer timePeriod,
-                                       @RequestParam String seriesType) {
-        service.loadSMA(symbol, interval, timePeriod, seriesType);
-        return ResponseEntity.ok("Forex SMA loaded for " + symbol + " [" + interval + "]");
+    public ResponseEntity<String> load() {
+        service.loadSMA();
+        return ResponseEntity.ok("Forex SMA loaded for ");
     }
 
     @GetMapping("/get")

@@ -4,7 +4,7 @@ import com.market.alphavantage.dto.DividendDTO;
 
 public interface DividendService {
 
-    void loadDividends(String symbol);
+    void loadDividends();
 
     DividendDTO getDividends(String symbol);
 }

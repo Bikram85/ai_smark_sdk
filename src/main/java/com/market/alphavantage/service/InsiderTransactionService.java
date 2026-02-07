@@ -6,7 +6,7 @@ import com.market.alphavantage.dto.InsiderTransactionDTO;
 
 public interface InsiderTransactionService {
 
-    void loadInsiderTransactions(String symbol);
+    void loadInsiderTransactions();
 
     InsiderTransactionDTO getInsiderTransactions(String symbol);
 }

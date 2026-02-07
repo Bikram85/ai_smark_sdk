@@ -16,10 +16,10 @@ public class InsiderTransactionController {
 
     private final InsiderTransactionService service;
 
-    @PostMapping("/load/{symbol}")
-    public ResponseEntity<String> load(@PathVariable String symbol) {
-        service.loadInsiderTransactions(symbol.toUpperCase());
-        return ResponseEntity.ok("Insider transactions loaded for " + symbol);
+    @PostMapping("/load")
+    public ResponseEntity<String> load() {
+        service.loadInsiderTransactions();
+        return ResponseEntity.ok("Insider transactions loaded for " );
     }
 
     @GetMapping("/{symbol}")
@@ -31,7 +31,7 @@ public class InsiderTransactionController {
 
     @PutMapping("/reload/{symbol}")
     public ResponseEntity<String> reload(@PathVariable String symbol) {
-        service.loadInsiderTransactions(symbol.toUpperCase());
+        //service.loadInsiderTransactions(symbol.toUpperCase());
         return ResponseEntity.ok("Insider transactions reloaded for " + symbol);
     }
 }

@@ -4,7 +4,7 @@ import com.market.alphavantage.dto.GoldSilverHistoryDTO;
 
 public interface GoldSilverHistoryService {
 
-    void loadHistory(String symbol, String interval);
+    void loadHistory();
 
     GoldSilverHistoryDTO getHistory(String symbol, String interval);
 }

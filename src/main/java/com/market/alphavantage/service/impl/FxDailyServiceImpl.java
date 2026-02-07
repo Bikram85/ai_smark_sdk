@@ -33,18 +33,25 @@ public class FxDailyServiceImpl implements FxDailyService {
     private String apiKey;
 
 
+    private static final String BASE_CURRENCY = "USD";
+
+    private static final List<String> FX_SYMBOLS = List.of(
+            "JPY",
+            "AED",
+            "CAD",
+            "CHF",
+            "EUR",
+            "GBP",
+            "INR",
+            "RUB",
+            "SAR"
+    );
+
     @Override
     public void loadFxDaily() {
-        fetchDetails("JPY","USD");
-        fetchDetails("AED","USD");
-        fetchDetails("CAD","USD");
-        fetchDetails("CHF","USD");
-        fetchDetails("EUR","USD");
-        fetchDetails("GBP","USD");
-        fetchDetails("INR","USD");
-        fetchDetails("RUB","USD");
-        fetchDetails("SAR","USD");
-
+        FX_SYMBOLS.forEach(symbol ->
+                fetchDetails(symbol, BASE_CURRENCY)
+        );
     }
 
 

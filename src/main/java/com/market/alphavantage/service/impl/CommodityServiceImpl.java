@@ -30,8 +30,33 @@ public class CommodityServiceImpl implements CommodityService {
     @Value("${alphavantage.apiKey}")
     private String apiKey;
 
+    private static final String OCURRENCE = "daily";
+
+
+    private static final List<String> COMODITIES_SYMBOLS = List.of(
+            "WTI",
+            "BRENT",
+            "NATURAL_GAS",
+            "COPPER",
+            "ALUMINUM",
+            "WHEAT",
+            "CORN",
+            "COTTON",
+            "SUGAR",
+            "COFFEE",
+            "ALL_COMMODITIES"
+    );
+
     @Override
-    public void loadCommodity(String function, String interval) {
+    public void loadCommodity() {
+        COMODITIES_SYMBOLS.forEach(symbol ->
+                fetchDetails(symbol, OCURRENCE)
+        );
+    }
+
+
+
+    private void fetchDetails(String function, String interval) {
         String url = baseUrl
                 + "?function=" + function.toUpperCase()
                 + "&interval=" + interval.toLowerCase()

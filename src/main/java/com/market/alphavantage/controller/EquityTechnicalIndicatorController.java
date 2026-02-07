@@ -16,13 +16,10 @@ public class EquityTechnicalIndicatorController {
 
     private final EquityTechnicalIndicatorService service;
 
-    @PostMapping("/load")
-    public ResponseEntity<String> load(@RequestParam String symbol,
-                                       @RequestParam String interval,
-                                       @RequestParam Integer timePeriod,
-                                       @RequestParam String seriesType) {
-        service.loadSMA(symbol, interval, timePeriod, seriesType);
-        return ResponseEntity.ok("SMA loaded for " + symbol + " [" + interval + "]");
+    @GetMapping("/load")
+    public ResponseEntity<String> load() {
+        service.loadSMA();
+        return ResponseEntity.ok("SMA loaded for ");
     }
 
     @GetMapping("/get")

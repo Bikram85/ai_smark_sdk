@@ -5,7 +5,7 @@ import com.market.alphavantage.dto.SharesOutstandingDTO;
 
 public interface SharesOutstandingService {
 
-    void loadSharesOutstanding(String symbol);
+    void loadSharesOutstanding();
 
     SharesOutstandingDTO getSharesOutstanding(String symbol);
 }

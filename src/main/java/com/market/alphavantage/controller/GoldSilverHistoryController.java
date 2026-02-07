@@ -17,8 +17,7 @@ public class GoldSilverHistoryController {
     @PostMapping("/load")
     public ResponseEntity<String> load(@RequestParam String symbol,
                                        @RequestParam String interval) {
-        service.loadHistory("GOLD", "daily");
-        service.loadHistory("SILVER", "daily");
+        service.loadHistory();
         return ResponseEntity.ok("Gold/Silver history loaded for " + symbol + " [" + interval + "]");
     }
 

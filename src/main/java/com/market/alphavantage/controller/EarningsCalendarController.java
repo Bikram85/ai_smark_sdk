@@ -15,10 +15,10 @@ public class EarningsCalendarController {
 
     private final EarningsCalendarService service;
 
-    @PostMapping("/load/{horizon}")
-    public ResponseEntity<String> load(@PathVariable String horizon) {
-        service.loadEarningsCalendar(horizon);
-        return ResponseEntity.ok("Earnings calendar loaded for horizon=" + horizon);
+    @GetMapping("/load")
+    public ResponseEntity<String> load() {
+        service.loadEarningsCalendar("3month");
+        return ResponseEntity.ok("Earnings calendar loaded for horizon=" );
     }
 
     @GetMapping("/{id}")

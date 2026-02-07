@@ -15,10 +15,10 @@ public class SharesOutstandingController {
 
     private final SharesOutstandingService service;
 
-    @PostMapping("/load/{symbol}")
-    public ResponseEntity<String> load(@PathVariable String symbol) {
-        service.loadSharesOutstanding(symbol.toUpperCase());
-        return ResponseEntity.ok("Shares Outstanding loaded for " + symbol);
+    @PostMapping("/load")
+    public ResponseEntity<String> load() {
+        service.loadSharesOutstanding();
+        return ResponseEntity.ok("Shares Outstanding loaded for ");
     }
 
     @GetMapping("/{symbol}")
@@ -30,7 +30,7 @@ public class SharesOutstandingController {
 
     @PutMapping("/reload/{symbol}")
     public ResponseEntity<String> reload(@PathVariable String symbol) {
-        service.loadSharesOutstanding(symbol.toUpperCase());
+       // service.loadSharesOutstanding(symbol.toUpperCase());
         return ResponseEntity.ok("Shares Outstanding reloaded for " + symbol);
     }
 }

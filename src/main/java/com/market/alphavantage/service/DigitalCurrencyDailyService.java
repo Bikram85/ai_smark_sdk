@@ -4,7 +4,7 @@ import com.market.alphavantage.dto.DigitalCurrencyDailyDTO;
 
 public interface DigitalCurrencyDailyService {
 
-    void loadDigitalCurrencyDaily(String symbol, String market);
+    void loadDigitalCurrencyDaily();
 
     DigitalCurrencyDailyDTO getDigitalCurrencyDaily(String symbol, String market);
 }

@@ -30,8 +30,30 @@ public class DigitalCurrencyDailyServiceImpl implements DigitalCurrencyDailyServ
     @Value("${alphavantage.apiKey}")
     private String apiKey;
 
+    private static final String BASE_CURRENCY = "USD";
+
+    private static final List<String> CRYPTO_SYMBOLS = List.of(
+            "BTC",
+            "ETH",
+            "USDT",
+            "USDC",
+            "SOL",
+            "XRP",
+            "BNB",
+            "ADA",
+            "DOGE",
+            "DOT"
+    );
+
     @Override
-    public void loadDigitalCurrencyDaily(String symbol, String market) {
+    public void loadDigitalCurrencyDaily() {
+        CRYPTO_SYMBOLS.forEach(symbol ->
+                fetchDetails(symbol, BASE_CURRENCY)
+        );
+    }
+
+
+    private void fetchDetails(String symbol, String market) {
         String url = baseUrl
                 + "?function=DIGITAL_CURRENCY_DAILY"
                 + "&symbol=" + symbol.toUpperCase()

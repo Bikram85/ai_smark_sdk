@@ -30,8 +30,39 @@ public class ForexTechnicalIndicatorServiceImpl implements ForexTechnicalIndicat
     @Value("${alphavantage.apiKey}")
     private String apiKey;
 
+
+
+    private static final List<Integer> SMA_PERIODS =
+            List.of(20, 50, 100, 200);
+
+    private static final String DEFAULT_INTERVAL = "daily";
+    private static final String DEFAULT_SERIES_TYPE = "close";
+
     @Override
-    public void loadSMA(String symbol, String interval, Integer timePeriod, String seriesType) {
+    public void loadSMA() {
+        List<String> symbols = List.of(
+                "JPYUSD",
+                "AEDUSD",
+                "CADUSD",
+                "CHFUSD",
+                "EURUSD",
+                "GBPUSD",
+                "INRUSD",
+                "SARUSD"
+        );
+
+        symbols.forEach(this::loadSMAForSymbol);
+    }
+
+    private void loadSMAForSymbol(String symbol) {
+        for (Integer period : SMA_PERIODS) {
+            fetchDetails(symbol, DEFAULT_INTERVAL, period, DEFAULT_SERIES_TYPE);
+        }
+    }
+
+
+
+    public void fetchDetails(String symbol, String interval, Integer timePeriod, String seriesType) {
         String url = baseUrl
                 + "?function=SMA"
                 + "&symbol=" + symbol.toUpperCase()

@@ -14,9 +14,9 @@ public class DividendController {
 
     private final DividendService service;
 
-    @PostMapping("/load/{symbol}")
+    @GetMapping("/load")
     public ResponseEntity<String> load(@PathVariable String symbol) {
-        service.loadDividends(symbol);
+        service.loadDividends();
         return ResponseEntity.ok("Dividends loaded for " + symbol);
     }
 
