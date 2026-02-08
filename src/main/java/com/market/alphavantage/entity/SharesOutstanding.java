@@ -1,15 +1,12 @@
 package com.market.alphavantage.entity;
 
-
-
-import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @Entity
 @Table(name = "shares_outstanding")
@@ -19,9 +16,9 @@ public class SharesOutstanding {
     @Id
     private String symbol;
 
-    @ElementCollection
-    private List<LocalDate> fiscalDateEnding;
+    @Column(name = "fiscal_dates", columnDefinition = "date[]")
+    private LocalDate[] fiscalDates;
 
-    @ElementCollection
-    private List<Long> reportedSharesOutstanding;
+    @Column(name = "reported_shares", columnDefinition = "bigint[]")
+    private Long[] reportedShares;
 }

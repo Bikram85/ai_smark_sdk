@@ -1,59 +1,102 @@
 package com.market.alphavantage.entity;
 
-import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @Entity
 @Table(name = "income_statement")
-@Data
+@Getter
+@Setter
 public class IncomeStatement {
 
     @Id
+    @Column(name = "symbol")
     private String symbol;
 
-    /* -------- Annual Reports -------- */
+    /* ================= ANNUAL ================= */
+    @Column(name = "annual_fiscal_date_ending")
+    private LocalDate[] annualFiscalDateEnding;
 
-    @ElementCollection
-    private List<LocalDate> annualFiscalDateEnding;
+    @Column(name = "annual_total_revenue")
+    private Long[] annualTotalRevenue;
 
-    @ElementCollection
-    private List<Long> annualTotalRevenue;
+    @Column(name = "annual_cost_of_revenue")
+    private Long[] annualCostOfRevenue;
 
-    @ElementCollection
-    private List<Long> annualGrossProfit;
+    @Column(name = "annual_gross_profit")
+    private Long[] annualGrossProfit;
 
-    @ElementCollection
-    private List<Long> annualOperatingIncome;
+    @Column(name = "annual_operating_expenses")
+    private Long[] annualOperatingExpenses;
 
-    @ElementCollection
-    private List<Long> annualNetIncome;
+    @Column(name = "annual_operating_income")
+    private Long[] annualOperatingIncome;
 
-    @ElementCollection
-    private List<Long> annualEbitda;
+    @Column(name = "annual_ebit")
+    private Long[] annualEbit;
 
-    /* -------- Quarterly Reports -------- */
+    @Column(name = "annual_ebitda")
+    private Long[] annualEbitda;
 
-    @ElementCollection
-    private List<LocalDate> quarterlyFiscalDateEnding;
+    @Column(name = "annual_interest_expense")
+    private Long[] annualInterestExpense;
 
-    @ElementCollection
-    private List<Long> quarterlyTotalRevenue;
+    @Column(name = "annual_income_before_tax")
+    private Long[] annualIncomeBeforeTax;
 
-    @ElementCollection
-    private List<Long> quarterlyGrossProfit;
+    @Column(name = "annual_income_tax_expense")
+    private Long[] annualIncomeTaxExpense;
 
-    @ElementCollection
-    private List<Long> quarterlyOperatingIncome;
+    @Column(name = "annual_net_income")
+    private Long[] annualNetIncome;
 
-    @ElementCollection
-    private List<Long> quarterlyNetIncome;
+    @Column(name = "annual_net_income_from_continuing_operations")
+    private Long[] annualNetIncomeFromContinuingOperations;
 
-    @ElementCollection
-    private List<Long> quarterlyEbitda;
+
+    /* ================= QUARTERLY ================= */
+    @Column(name = "quarterly_fiscal_date_ending")
+    private LocalDate[] quarterlyFiscalDateEnding;
+
+    @Column(name = "quarterly_total_revenue")
+    private Long[] quarterlyTotalRevenue;
+
+    @Column(name = "quarterly_cost_of_revenue")
+    private Long[] quarterlyCostOfRevenue;
+
+    @Column(name = "quarterly_gross_profit")
+    private Long[] quarterlyGrossProfit;
+
+    @Column(name = "quarterly_operating_expenses")
+    private Long[] quarterlyOperatingExpenses;
+
+    @Column(name = "quarterly_operating_income")
+    private Long[] quarterlyOperatingIncome;
+
+    @Column(name = "quarterly_ebit")
+    private Long[] quarterlyEbit;
+
+    @Column(name = "quarterly_ebitda")
+    private Long[] quarterlyEbitda;
+
+    @Column(name = "quarterly_interest_expense")
+    private Long[] quarterlyInterestExpense;
+
+    @Column(name = "quarterly_income_before_tax")
+    private Long[] quarterlyIncomeBeforeTax;
+
+    @Column(name = "quarterly_income_tax_expense")
+    private Long[] quarterlyIncomeTaxExpense;
+
+    @Column(name = "quarterly_net_income")
+    private Long[] quarterlyNetIncome;
+
+    @Column(name = "quarterly_net_income_from_continuing_operations")
+    private Long[] quarterlyNetIncomeFromContinuingOperations;
 }

@@ -14,7 +14,7 @@ public class SplitController {
 
     private final SplitService service;
 
-    @PostMapping("/load/{symbol}")
+    @GetMapping("/load/{symbol}")
     public ResponseEntity<String> load(@PathVariable String symbol) {
         service.loadSplits(symbol);
         return ResponseEntity.ok("Splits loaded for " + symbol);

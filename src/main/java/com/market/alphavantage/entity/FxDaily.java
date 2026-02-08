@@ -1,13 +1,12 @@
 package com.market.alphavantage.entity;
 
-import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @Entity
 @Table(name = "fx_daily")
@@ -15,23 +14,28 @@ import java.util.List;
 public class FxDaily {
 
     @Id
+    @Column(length = 50)
     private String id; // combination of fromSymbol + "_" + toSymbol
 
+    @Column(nullable = false)
     private String fromSymbol;
+
+    @Column(nullable = false)
     private String toSymbol;
 
-    @ElementCollection
-    private List<LocalDate> tradeDate;
+    // Store all values as arrays for single-row storage
+    @Column(columnDefinition = "DATE[]")
+    private LocalDate[] tradeDate;
 
-    @ElementCollection
-    private List<Double> open;
+    @Column(columnDefinition = "DOUBLE PRECISION[]")
+    private Double[] open;
 
-    @ElementCollection
-    private List<Double> high;
+    @Column(columnDefinition = "DOUBLE PRECISION[]")
+    private Double[] high;
 
-    @ElementCollection
-    private List<Double> low;
+    @Column(columnDefinition = "DOUBLE PRECISION[]")
+    private Double[] low;
 
-    @ElementCollection
-    private List<Double> close;
+    @Column(columnDefinition = "DOUBLE PRECISION[]")
+    private Double[] close;
 }

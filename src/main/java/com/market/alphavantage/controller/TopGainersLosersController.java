@@ -14,7 +14,7 @@ public class TopGainersLosersController {
 
     private final TopGainersLosersService service;
 
-    @PostMapping("/load")
+    @GetMapping("/load")
     public ResponseEntity<String> load() {
         service.loadTopGainersLosers();
         return ResponseEntity.ok("Top gainers and losers loaded");

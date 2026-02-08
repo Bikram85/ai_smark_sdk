@@ -140,7 +140,7 @@ public class MarketServiceImpl implements MarketService {
         List<Double> highs = new ArrayList<>();
         List<Double> lows = new ArrayList<>();
         List<Double> closes = new ArrayList<>();
-        List<Long> volumes = new ArrayList<>();
+        List<Double> volumes = new ArrayList<>();
 
         series.forEach((date, values) -> {
 
@@ -149,7 +149,7 @@ public class MarketServiceImpl implements MarketService {
             highs.add(Double.valueOf(values.get("2. high")));
             lows.add(Double.valueOf(values.get("3. low")));
             closes.add(Double.valueOf(values.get("4. close")));
-            volumes.add(Long.valueOf(values.get("5. volume")));
+            volumes.add(Double.valueOf(values.get("5. volume")));
         });
         if (type.contains("Stock")) {
         StockPrice dp = new StockPrice();
@@ -159,7 +159,7 @@ public class MarketServiceImpl implements MarketService {
         dp.setHigh(highs.toArray(new Double[0]));
         dp.setLow(lows.toArray(new Double[0]));
         dp.setClose(closes.toArray(new Double[0]));
-        dp.setVolume(volumes.toArray(new Long[0]));
+        dp.setVolume(volumes.toArray(new Double[0]));
 
             stockPriceRepository.save(dp);
         }

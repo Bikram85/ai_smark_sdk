@@ -14,11 +14,10 @@ public class GoldSilverHistoryController {
 
     private final GoldSilverHistoryService service;
 
-    @PostMapping("/load")
-    public ResponseEntity<String> load(@RequestParam String symbol,
-                                       @RequestParam String interval) {
+    @GetMapping("/load")
+    public ResponseEntity<String> load() {
         service.loadHistory();
-        return ResponseEntity.ok("Gold/Silver history loaded for " + symbol + " [" + interval + "]");
+        return ResponseEntity.ok("Gold/Silver history loaded for ");
     }
 
     @GetMapping("/get")

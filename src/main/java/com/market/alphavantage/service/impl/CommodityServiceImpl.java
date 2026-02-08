@@ -10,11 +10,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
-
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -32,8 +31,7 @@ public class CommodityServiceImpl implements CommodityService {
 
     private static final String OCURRENCE = "daily";
 
-
-    private static final List<String> COMODITIES_SYMBOLS = List.of(
+    private static final List<String> COMMODITIES_SYMBOLS = List.of(
             "WTI",
             "BRENT",
             "NATURAL_GAS",
@@ -47,14 +45,12 @@ public class CommodityServiceImpl implements CommodityService {
             "ALL_COMMODITIES"
     );
 
+    private final DateTimeFormatter logFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     @Override
     public void loadCommodity() {
-        COMODITIES_SYMBOLS.forEach(symbol ->
-                fetchDetails(symbol, OCURRENCE)
-        );
+        COMMODITIES_SYMBOLS.forEach(symbol -> fetchDetails(symbol, OCURRENCE));
     }
-
-
 
     private void fetchDetails(String function, String interval) {
         String url = baseUrl
@@ -62,65 +58,78 @@ public class CommodityServiceImpl implements CommodityService {
                 + "&interval=" + interval.toLowerCase()
                 + "&apikey=" + apiKey;
 
-        Map<String, Object> response = restTemplate.getForObject(url, Map.class);
-        if (response == null || response.isEmpty()) return;
+        try {
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            if (response == null || response.isEmpty()) {
+                logError("No response for " + function + " -> " + interval);
+                return;
+            }
 
-        // The key is usually "Time Series (Interval)" e.g., "Time Series (Monthly)"
-        String key = "Time Series (" + interval.substring(0, 1).toUpperCase() + interval.substring(1) + ")";
-        Map<String, Map<String, String>> series = (Map<String, Map<String, String>>) response.get(key);
-        if (series == null) return;
+            // NEW: API returns 'data' array
+            List<Map<String, String>> series = (List<Map<String, String>>) response.get("data");
+            if (series == null || series.isEmpty()) {
+                logError("No series data for " + function + " -> " + interval);
+                return;
+            }
 
-        Commodity entity = new Commodity();
-        String id = function.toUpperCase() + "_" + interval.toLowerCase();
-        entity.setId(id);
-        entity.setFunction(function.toUpperCase());
-        entity.setInterval(interval.toLowerCase());
+            // Sort oldest to newest
+            series.sort(Comparator.comparing(m -> parseDate(m.get("date"))));
 
-        List<LocalDate> tradeDates = new ArrayList<>();
-        List<Double> opens = new ArrayList<>();
-        List<Double> highs = new ArrayList<>();
-        List<Double> lows = new ArrayList<>();
-        List<Double> closes = new ArrayList<>();
-        List<Long> volumes = new ArrayList<>();
+            Commodity entity = new Commodity();
+            String id = function.toUpperCase() + "_" + interval.toLowerCase();
+            entity.setId(id);
+            entity.setFunction(function.toUpperCase());
+            entity.setInterval(interval.toLowerCase());
 
-        series.forEach((date, values) -> {
-            tradeDates.add(parseDate(date));
-            opens.add(parseDouble(values.get("1. open")));
-            highs.add(parseDouble(values.get("2. high")));
-            lows.add(parseDouble(values.get("3. low")));
-            closes.add(parseDouble(values.get("4. close")));
-            volumes.add(parseLong(values.get("5. volume")));
-        });
+            List<LocalDate> tradeDates = new ArrayList<>();
+            List<Double> values = new ArrayList<>();
 
-        entity.setTradeDate(tradeDates);
-        entity.setOpen(opens);
-        entity.setHigh(highs);
-        entity.setLow(lows);
-        entity.setClose(closes);
-        entity.setVolume(volumes);
+            for (Map<String, String> point : series) {
+                tradeDates.add(parseDate(point.get("date")));
+                values.add(parseDouble(point.get("value")));
+            }
 
-        repository.save(entity);
+            entity.setTradeDate(tradeDates.toArray(new LocalDate[0]));
+            entity.setClose(values.toArray(new Double[0])); // store value in 'close', others left null
+
+            repository.save(entity);
+            logInfo("Saved commodity data for " + id);
+
+        } catch (Exception ex) {
+            logError("Failed to fetch commodity " + function + " -> " + interval
+                    + ". Reason: " + ex.getMessage());
+        }
     }
 
     @Override
     public CommodityDTO getCommodity(String function, String interval) {
         String id = function.toUpperCase() + "_" + interval.toLowerCase();
         Commodity e = repository.findById(id).orElse(null);
-        if (e == null) return null;
+        if (e == null) {
+            logInfo("No commodity data found for " + function + " -> " + interval);
+            return null;
+        }
+
+        // Convert arrays to lists for DTO
+        List<LocalDate> tradeDate = e.getTradeDate() != null ? List.of(e.getTradeDate()) : List.of();
+        List<Double> close = e.getClose() != null ? List.of(e.getClose()) : List.of();
+
+        logInfo("Retrieved commodity data for " + function + " -> " + interval);
 
         return new CommodityDTO(
                 e.getId(),
                 e.getFunction(),
                 e.getInterval(),
-                e.getTradeDate(),
-                e.getOpen(),
-                e.getHigh(),
-                e.getLow(),
-                e.getClose(),
-                e.getVolume()
+                tradeDate,
+                null, // open
+                null, // high
+                null, // low
+                close,
+                null  // volume
         );
     }
 
+    /* ===== Helper Methods ===== */
     private LocalDate parseDate(String val) {
         try {
             return val == null || val.isBlank() ? null : LocalDate.parse(val);
@@ -137,11 +146,12 @@ public class CommodityServiceImpl implements CommodityService {
         }
     }
 
-    private Long parseLong(String val) {
-        try {
-            return val == null || val.isBlank() ? 0L : Long.valueOf(val);
-        } catch (Exception ex) {
-            return 0L;
-        }
+    /* ===== Logging ===== */
+    private void logInfo(String msg) {
+        System.out.println("[" + LocalDateTime.now().format(logFormatter) + "] INFO: " + msg);
+    }
+
+    private void logError(String msg) {
+        System.err.println("[" + LocalDateTime.now().format(logFormatter) + "] ERROR: " + msg);
     }
 }

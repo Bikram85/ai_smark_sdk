@@ -14,7 +14,7 @@ public class RealtimeOptionController {
 
     private final RealtimeOptionService service;
 
-    @PostMapping("/load")
+    @GetMapping("/load")
     public ResponseEntity<String> load() {
         service.loadRealtimeOptions();
         return ResponseEntity.ok("Realtime options loaded for " );

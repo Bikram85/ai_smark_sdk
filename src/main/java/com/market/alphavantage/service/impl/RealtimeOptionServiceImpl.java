@@ -12,8 +12,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
-
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,30 +36,26 @@ public class RealtimeOptionServiceImpl implements RealtimeOptionService {
     @Value("${alphavantage.apiKey}")
     private String apiKey;
 
+    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     @Override
     public void loadRealtimeOptions() {
-
         List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
-
-        int total = stocks.size() ;
+        int total = stocks.size();
 
         AtomicInteger processed = new AtomicInteger(0);
         AtomicInteger success = new AtomicInteger(0);
         AtomicInteger failed = new AtomicInteger(0);
 
-        stocks.forEach(symbol -> {
-            processSymbol(symbol.getSymbol(), "Stock",
-                    processed, success, failed, total);
-        });
+        stocks.forEach(symbol -> processSymbol(symbol.getSymbol(), processed, success, failed, total));
 
-        System.out.println("\n===== SUMMARY =====");
-        System.out.println("Total symbols : " + total);
-        System.out.println("Success       : " + success.get());
-        System.out.println("Failed        : " + failed.get());
+        logInfo("\n===== SUMMARY =====");
+        logInfo("Total symbols : " + total);
+        logInfo("Success       : " + success.get());
+        logInfo("Failed        : " + failed.get());
     }
 
     private void processSymbol(String symbol,
-                               String type,
                                AtomicInteger processed,
                                AtomicInteger success,
                                AtomicInteger failed,
@@ -67,109 +66,173 @@ public class RealtimeOptionServiceImpl implements RealtimeOptionService {
         try {
             fetchDetails(symbol);
             success.incrementAndGet();
-
-            System.out.println("loadRealtimeOptions Processed "
-                    + current + "/" + total
-                    + " SUCCESS: " + symbol);
-
+            logInfo("Processed " + current + "/" + total + " SUCCESS: " + symbol);
         } catch (Exception ex) {
             failed.incrementAndGet();
-
-            System.err.println("loadRealtimeOptions Processed "
-                    + current + "/" + total
-                    + " FAILED: " + symbol
-                    + " Reason: " + ex.getMessage());
+            logError("Processed " + current + "/" + total + " FAILED: " + symbol + " Reason: " + ex.getMessage());
         }
     }
-
 
     private void fetchDetails(String symbol) {
 
         String url = baseUrl
                 + "?function=REALTIME_OPTIONS"
-                + "&symbol=" + symbol
+                + "&symbol=" + symbol.toUpperCase()
                 + "&require_greeks=true"
                 + "&apikey=" + apiKey;
 
         Map<String, Object> response = restTemplate.getForObject(url, Map.class);
         if (response == null || response.isEmpty()) return;
 
-        List<Map<String, Object>> optionData = (List<Map<String, Object>>) response.get("optionChain");
+        List<Map<String, Object>> optionData =
+                (List<Map<String, Object>>) response.get("data");
 
-        if (optionData == null) return;
+        if (optionData == null || optionData.isEmpty()) return;
 
-        RealtimeOption entity = new RealtimeOption();
-        entity.setSymbol(symbol);
+        /* ---- Split calls & puts ---- */
 
-        List<String> expirationDate = new ArrayList<>();
-        List<String> optionType = new ArrayList<>();
-        List<Double> strikePrice = new ArrayList<>();
-        List<Double> lastPrice = new ArrayList<>();
-        List<Double> bid = new ArrayList<>();
-        List<Double> ask = new ArrayList<>();
-        List<Long> volume = new ArrayList<>();
-        List<Long> openInterest = new ArrayList<>();
-        List<Double> impliedVolatility = new ArrayList<>();
-        List<Double> delta = new ArrayList<>();
-        List<Double> gamma = new ArrayList<>();
-        List<Double> theta = new ArrayList<>();
-        List<Double> vega = new ArrayList<>();
+        List<Map<String, Object>> calls = new ArrayList<>();
+        List<Map<String, Object>> puts = new ArrayList<>();
 
         for (Map<String, Object> opt : optionData) {
-            expirationDate.add((String) opt.get("expirationDate"));
-            optionType.add((String) opt.get("optionType"));
-            strikePrice.add(parseDouble(opt.get("strikePrice")));
-            lastPrice.add(parseDouble(opt.get("lastPrice")));
-            bid.add(parseDouble(opt.get("bid")));
-            ask.add(parseDouble(opt.get("ask")));
-            volume.add(parseLong(opt.get("volume")));
-            openInterest.add(parseLong(opt.get("openInterest")));
-            impliedVolatility.add(parseDouble(opt.get("impliedVolatility")));
-            delta.add(parseDouble(opt.get("delta")));
-            gamma.add(parseDouble(opt.get("gamma")));
-            theta.add(parseDouble(opt.get("theta")));
-            vega.add(parseDouble(opt.get("vega")));
+            String type = (String) opt.get("type");
+
+            if ("call".equalsIgnoreCase(type)) {
+                calls.add(opt);
+            } else if ("put".equalsIgnoreCase(type)) {
+                puts.add(opt);
+            }
         }
 
-        entity.setExpirationDate(expirationDate);
-        entity.setOptionType(optionType);
-        entity.setStrikePrice(strikePrice);
-        entity.setLastPrice(lastPrice);
-        entity.setBid(bid);
-        entity.setAsk(ask);
-        entity.setVolume(volume);
-        entity.setOpenInterest(openInterest);
-        entity.setImpliedVolatility(impliedVolatility);
-        entity.setDelta(delta);
-        entity.setGamma(gamma);
-        entity.setTheta(theta);
-        entity.setVega(vega);
+        RealtimeOption entity = new RealtimeOption();
+        entity.setSymbol(symbol.toUpperCase());
+
+        /* ---- Fill CALL arrays ---- */
+
+        fillOptionArrays(calls, true, entity);
+
+        /* ---- Fill PUT arrays ---- */
+
+        fillOptionArrays(puts, false, entity);
 
         repository.save(entity);
+
+        logInfo("Saved Realtime Options for "
+                + symbol + " Calls=" + calls.size()
+                + " Puts=" + puts.size());
     }
+
+    private void fillOptionArrays(List<Map<String, Object>> data,
+                                  boolean isCall,
+                                  RealtimeOption entity) {
+
+        int size = data.size();
+
+        String[] expiration = new String[size];
+        Double[] strike = new Double[size];
+        Double[] last = new Double[size];
+        Double[] bid = new Double[size];
+        Double[] ask = new Double[size];
+        Long[] volume = new Long[size];
+        Long[] openInterest = new Long[size];
+        Double[] iv = new Double[size];
+        Double[] delta = new Double[size];
+        Double[] gamma = new Double[size];
+        Double[] theta = new Double[size];
+        Double[] vega = new Double[size];
+
+        for (int i = 0; i < size; i++) {
+
+            Map<String, Object> opt = data.get(i);
+
+            expiration[i] = (String) opt.get("expiration");
+            strike[i] = parseDouble(opt.get("strike"));
+            last[i] = parseDouble(opt.get("last"));
+            bid[i] = parseDouble(opt.get("bid"));
+            ask[i] = parseDouble(opt.get("ask"));
+            volume[i] = parseLong(opt.get("volume"));
+            openInterest[i] = parseLong(opt.get("open_interest"));
+            iv[i] = parseDouble(opt.get("impliedVolatility"));
+            delta[i] = parseDouble(opt.get("delta"));
+            gamma[i] = parseDouble(opt.get("gamma"));
+            theta[i] = parseDouble(opt.get("theta"));
+            vega[i] = parseDouble(opt.get("vega"));
+        }
+
+        if (isCall) {
+            entity.setCallExpirationDate(expiration);
+            entity.setCallStrikePrice(strike);
+            entity.setCallLastPrice(last);
+            entity.setCallBid(bid);
+            entity.setCallAsk(ask);
+            entity.setCallVolume(volume);
+            entity.setCallOpenInterest(openInterest);
+            entity.setCallImpliedVolatility(iv);
+            entity.setCallDelta(delta);
+            entity.setCallGamma(gamma);
+            entity.setCallTheta(theta);
+            entity.setCallVega(vega);
+        } else {
+            entity.setPutExpirationDate(expiration);
+            entity.setPutStrikePrice(strike);
+            entity.setPutLastPrice(last);
+            entity.setPutBid(bid);
+            entity.setPutAsk(ask);
+            entity.setPutVolume(volume);
+            entity.setPutOpenInterest(openInterest);
+            entity.setPutImpliedVolatility(iv);
+            entity.setPutDelta(delta);
+            entity.setPutGamma(gamma);
+            entity.setPutTheta(theta);
+            entity.setPutVega(vega);
+        }
+    }
+
+
 
     @Override
     public RealtimeOptionDTO getRealtimeOptions(String symbol) {
-        RealtimeOption e = repository.findById(symbol).orElse(null);
+        RealtimeOption e = repository.findById(symbol.toUpperCase()).orElse(null);
         if (e == null) return null;
 
         return new RealtimeOptionDTO(
                 e.getSymbol(),
-                e.getExpirationDate(),
-                e.getOptionType(),
-                e.getStrikePrice(),
-                e.getLastPrice(),
-                e.getBid(),
-                e.getAsk(),
-                e.getVolume(),
-                e.getOpenInterest(),
-                e.getImpliedVolatility(),
-                e.getDelta(),
-                e.getGamma(),
-                e.getTheta(),
-                e.getVega()
+
+                // Calls
+                e.getCallExpirationDate() != null ? Arrays.asList(e.getCallExpirationDate()) : new ArrayList<>(),
+                e.getCallStrikePrice() != null ? Arrays.asList(e.getCallStrikePrice()) : new ArrayList<>(),
+                e.getCallLastPrice() != null ? Arrays.asList(e.getCallLastPrice()) : new ArrayList<>(),
+                e.getCallBid() != null ? Arrays.asList(e.getCallBid()) : new ArrayList<>(),
+                e.getCallAsk() != null ? Arrays.asList(e.getCallAsk()) : new ArrayList<>(),
+                e.getCallVolume() != null ? Arrays.asList(e.getCallVolume()) : new ArrayList<>(),
+                e.getCallOpenInterest() != null ? Arrays.asList(e.getCallOpenInterest()) : new ArrayList<>(),
+                e.getCallImpliedVolatility() != null ? Arrays.asList(e.getCallImpliedVolatility()) : new ArrayList<>(),
+                e.getCallDelta() != null ? Arrays.asList(e.getCallDelta()) : new ArrayList<>(),
+                e.getCallGamma() != null ? Arrays.asList(e.getCallGamma()) : new ArrayList<>(),
+                e.getCallTheta() != null ? Arrays.asList(e.getCallTheta()) : new ArrayList<>(),
+                e.getCallVega() != null ? Arrays.asList(e.getCallVega()) : new ArrayList<>(),
+
+                // Puts
+                e.getPutExpirationDate() != null ? Arrays.asList(e.getPutExpirationDate()) : new ArrayList<>(),
+                e.getPutStrikePrice() != null ? Arrays.asList(e.getPutStrikePrice()) : new ArrayList<>(),
+                e.getPutLastPrice() != null ? Arrays.asList(e.getPutLastPrice()) : new ArrayList<>(),
+                e.getPutBid() != null ? Arrays.asList(e.getPutBid()) : new ArrayList<>(),
+                e.getPutAsk() != null ? Arrays.asList(e.getPutAsk()) : new ArrayList<>(),
+                e.getPutVolume() != null ? Arrays.asList(e.getPutVolume()) : new ArrayList<>(),
+                e.getPutOpenInterest() != null ? Arrays.asList(e.getPutOpenInterest()) : new ArrayList<>(),
+                e.getPutImpliedVolatility() != null ? Arrays.asList(e.getPutImpliedVolatility()) : new ArrayList<>(),
+                e.getPutDelta() != null ? Arrays.asList(e.getPutDelta()) : new ArrayList<>(),
+                e.getPutGamma() != null ? Arrays.asList(e.getPutGamma()) : new ArrayList<>(),
+                e.getPutTheta() != null ? Arrays.asList(e.getPutTheta()) : new ArrayList<>(),
+                e.getPutVega() != null ? Arrays.asList(e.getPutVega()) : new ArrayList<>()
         );
     }
+
+
+
+
+
+    /* ===== Helpers ===== */
 
     private Double parseDouble(Object val) {
         try {
@@ -185,5 +248,13 @@ public class RealtimeOptionServiceImpl implements RealtimeOptionService {
         } catch (Exception e) {
             return 0L;
         }
+    }
+
+    private void logInfo(String message) {
+        System.out.println("[" + LocalDateTime.now().format(formatter) + "] INFO: " + message);
+    }
+
+    private void logError(String message) {
+        System.err.println("[" + LocalDateTime.now().format(formatter) + "] ERROR: " + message);
     }
 }

@@ -16,7 +16,7 @@ public class InsiderTransactionController {
 
     private final InsiderTransactionService service;
 
-    @PostMapping("/load")
+    @GetMapping("/load")
     public ResponseEntity<String> load() {
         service.loadInsiderTransactions();
         return ResponseEntity.ok("Insider transactions loaded for " );

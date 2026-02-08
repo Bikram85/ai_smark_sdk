@@ -29,7 +29,7 @@ public class BalanceSheetController {
 
     @PutMapping("/reload/{symbol}")
     public ResponseEntity<String> reload(@PathVariable String symbol) {
-        service.fetchDetails(symbol.toUpperCase());
+       // service.fetchDetails(symbol.toUpperCase());
         return ResponseEntity.ok("Balance sheet reloaded for " + symbol);
     }
 }

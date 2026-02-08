@@ -9,6 +9,5 @@ public interface BalanceSheetService {
 
     BalanceSheetDTO getBalanceSheet(String symbol);
 
-    void fetchDetails(String symbol);
 }
 

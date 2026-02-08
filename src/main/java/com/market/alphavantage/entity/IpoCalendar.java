@@ -1,14 +1,11 @@
 package com.market.alphavantage.entity;
 
-
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @Entity
 @Table(name = "ipo_calendar")
@@ -16,26 +13,12 @@ import java.util.List;
 public class IpoCalendar {
 
     @Id
-    private String id;  // Example id: "ipo_calendar_all"
+    private String symbol;  // use symbol as primary key (unique per row)
 
-    @ElementCollection
-    private List<String> symbol;
-
-    @ElementCollection
-    private List<String> name;
-
-    @ElementCollection
-    private List<LocalDate> ipoDate;
-
-    @ElementCollection
-    private List<String> price;
-
-    @ElementCollection
-    private List<String> shares;
-
-    @ElementCollection
-    private List<String> exchange;
-
-    @ElementCollection
-    private List<String> currency;
+    private String name;
+    private LocalDate ipoDate;
+    private String price;
+    private String shares;
+    private String exchange;
+    private String currency;
 }

@@ -25,6 +25,6 @@ public class StockPrice {
 
     private Double[] close;
 
-    private Long[] volume;
+    private Double[] volume;
 }
 

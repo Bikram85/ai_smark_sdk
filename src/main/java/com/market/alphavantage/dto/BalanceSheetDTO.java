@@ -2,19 +2,16 @@ package com.market.alphavantage.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.List;
 
 @Data
 @AllArgsConstructor
-@NoArgsConstructor
 public class BalanceSheetDTO {
-
     private String symbol;
 
-    /* ---------- Annual ---------- */
+    /* Annual */
     private List<LocalDate> annualFiscalDateEnding;
     private List<Long> annualTotalAssets;
     private List<Long> annualTotalLiabilities;
@@ -33,7 +30,7 @@ public class BalanceSheetDTO {
     private List<Long> annualRetainedEarnings;
     private List<Long> annualTreasuryStock;
 
-    /* ---------- Quarterly ---------- */
+    /* Quarterly */
     private List<LocalDate> quarterlyFiscalDateEnding;
     private List<Long> quarterlyTotalAssets;
     private List<Long> quarterlyTotalLiabilities;
@@ -52,5 +49,3 @@ public class BalanceSheetDTO {
     private List<Long> quarterlyRetainedEarnings;
     private List<Long> quarterlyTreasuryStock;
 }
-
-

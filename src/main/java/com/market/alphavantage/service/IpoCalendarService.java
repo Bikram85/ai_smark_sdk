@@ -6,5 +6,5 @@ public interface IpoCalendarService {
 
     void loadIpoCalendar();
 
-    IpoCalendarDTO getIpoCalendar(String id);
+    IpoCalendarDTO getIpoCalendar();
 }

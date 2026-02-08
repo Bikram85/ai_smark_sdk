@@ -1,5 +1,6 @@
 package com.market.alphavantage.dto;
 
+import com.market.alphavantage.entity.EarningsCalendar;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,13 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 public class EarningsCalendarDTO {
 
-    private String id;
-    private List<String> symbol;
-    private List<String> name;
-    private List<LocalDate> reportDate;
-    private List<LocalDate> fiscalDateEnding;
-    private List<Double> estimate;
-    private List<String> currency;
-    private List<String> timeOfTheDay;
+    private List<EarningsCalendar> earnings;
 }
+
 

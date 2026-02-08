@@ -1,23 +1,21 @@
 package com.market.alphavantage.service.impl;
 
-
 import com.market.alphavantage.dto.BalanceSheetDTO;
 import com.market.alphavantage.entity.BalanceSheet;
 import com.market.alphavantage.entity.Symbol;
 import com.market.alphavantage.repository.BalanceSheetRepository;
 import com.market.alphavantage.repository.SymbolRepository;
 import com.market.alphavantage.service.BalanceSheetService;
+import com.market.alphavantage.service.impl.processor.BalanceSheetProcessor;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 
-
-import java.time.LocalDate;
-import java.util.ArrayList;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -26,197 +24,50 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class BalanceSheetServiceImpl implements BalanceSheetService {
 
     private final BalanceSheetRepository repository;
-    private final RestTemplate restTemplate;
     private final SymbolRepository symbolRepo;
 
-    @Value("${alphavantage.baseUrl}")
-    private String baseUrl;
+    @Autowired
+    private BalanceSheetProcessor processor;
 
-    @Value("${alphavantage.apiKey}")
-    private String apiKey;
+    private static final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    /* ================= LOAD ================= */
     @Override
     public void loadBalanceSheet() {
-
         List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
 
+        AtomicInteger processed = new AtomicInteger();
+        AtomicInteger success = new AtomicInteger();
+        AtomicInteger failed = new AtomicInteger();
         int total = stocks.size();
 
-        AtomicInteger processed = new AtomicInteger(0);
-        AtomicInteger success = new AtomicInteger(0);
-        AtomicInteger failed = new AtomicInteger(0);
+        for (Symbol s : stocks) {
+            processSymbol(s.getSymbol(), processed, success, failed, total);
+        }
 
-        stocks.forEach(symbol -> {
-            processSymbol(symbol.getSymbol(), "Stock",
-                    processed, success, failed, total);
-        });
-
-        System.out.println("\n===== SUMMARY =====");
-        System.out.println("Total symbols : " + total);
-        System.out.println("Success       : " + success.get());
-        System.out.println("Failed        : " + failed.get());
+        log("===== loadBalanceSheet SUMMARY =====");
+        log("Total symbols : " + total);
+        log("Success       : " + success.get());
+        log("Failed        : " + failed.get());
     }
 
     private void processSymbol(String symbol,
-                               String type,
                                AtomicInteger processed,
                                AtomicInteger success,
                                AtomicInteger failed,
                                int total) {
 
         int current = processed.incrementAndGet();
+        String timestamp = LocalDateTime.now().format(dtf);
 
         try {
-            fetchDetails(symbol);
+            processor.processSymbol(symbol);
             success.incrementAndGet();
-
-            System.out.println("Balance Details Processed "
-                    + current + "/" + total
-                    + " SUCCESS: " + symbol);
-
+            log(timestamp + " | Processed " + current + "/" + total + " SUCCESS: " + symbol);
         } catch (Exception ex) {
             failed.incrementAndGet();
-
-            System.err.println("Balance Details Processed "
-                    + current + "/" + total
-                    + " FAILED: " + symbol
-                    + " Reason: " + ex.getMessage());
+            logErr(timestamp + " | Processed " + current + "/" + total + " FAILED: " + symbol + " -> " + ex.getMessage());
         }
-    }
-
-
-
-    public void fetchDetails(String symbol) {
-
-        String url = baseUrl +
-                "?function=BALANCE_SHEET" +
-                "&symbol=" + symbol +
-                "&apikey=" + apiKey;
-
-        Map<String, Object> response = restTemplate.getForObject(url, Map.class);
-        if (response == null || !response.containsKey("annualReports")) return;
-
-        List<Map<String, String>> annualReports = (List<Map<String, String>>) response.get("annualReports");
-        List<Map<String, String>> quarterlyReports = (List<Map<String, String>>) response.get("quarterlyReports");
-
-        BalanceSheet entity = new BalanceSheet();
-        entity.setSymbol(symbol);
-
-        /* --- Annual --- */
-        List<LocalDate> annDates = new ArrayList<>();
-        List<Long> annTotalAssets = new ArrayList<>();
-        List<Long> annTotalLiabilities = new ArrayList<>();
-        List<Long> annTotalEquity = new ArrayList<>();
-        List<Long> annCash = new ArrayList<>();
-        List<Long> annShortTermInvest = new ArrayList<>();
-        List<Long> annNetReceivables = new ArrayList<>();
-        List<Long> annInventory = new ArrayList<>();
-        List<Long> annOtherCurrentAssets = new ArrayList<>();
-        List<Long> annOtherAssets = new ArrayList<>();
-        List<Long> annAcctsPayable = new ArrayList<>();
-        List<Long> annCurrentDebt = new ArrayList<>();
-        List<Long> annLongTermDebt = new ArrayList<>();
-        List<Long> annOtherCurrentLiabilities = new ArrayList<>();
-        List<Long> annOtherLiabilities = new ArrayList<>();
-        List<Long> annRetainedEarnings = new ArrayList<>();
-        List<Long> annTreasuryStock = new ArrayList<>();
-
-        for (Map<String, String> r : annualReports) {
-            annDates.add(parseDate(r.get("fiscalDateEnding")));
-            annTotalAssets.add(parseLong(r.get("totalAssets")));
-            annTotalLiabilities.add(parseLong(r.get("totalLiabilities")));
-            annTotalEquity.add(parseLong(r.get("totalShareholderEquity")));
-            annCash.add(parseLong(r.get("cashAndCashEquivalentsAtCarryingValue")));
-            annShortTermInvest.add(parseLong(r.get("shortTermInvestments")));
-            annNetReceivables.add(parseLong(r.get("netReceivables")));
-            annInventory.add(parseLong(r.get("inventory")));
-            annOtherCurrentAssets.add(parseLong(r.get("otherCurrentAssets")));
-            annOtherAssets.add(parseLong(r.get("otherAssets")));
-            annAcctsPayable.add(parseLong(r.get("accountsPayable")));
-            annCurrentDebt.add(parseLong(r.get("currentDebt")));
-            annLongTermDebt.add(parseLong(r.get("longTermDebt")));
-            annOtherCurrentLiabilities.add(parseLong(r.get("otherCurrentLiabilities")));
-            annOtherLiabilities.add(parseLong(r.get("otherLiabilities")));
-            annRetainedEarnings.add(parseLong(r.get("retainedEarnings")));
-            annTreasuryStock.add(parseLong(r.get("treasuryStock")));
-        }
-
-        entity.setAnnualFiscalDateEnding(annDates);
-        entity.setAnnualTotalAssets(annTotalAssets);
-        entity.setAnnualTotalLiabilities(annTotalLiabilities);
-        entity.setAnnualTotalShareholderEquity(annTotalEquity);
-        entity.setAnnualCashAndCashEquivalents(annCash);
-        entity.setAnnualShortTermInvestments(annShortTermInvest);
-        entity.setAnnualNetReceivables(annNetReceivables);
-        entity.setAnnualInventory(annInventory);
-        entity.setAnnualOtherCurrentAssets(annOtherCurrentAssets);
-        entity.setAnnualOtherAssets(annOtherAssets);
-        entity.setAnnualAccountsPayable(annAcctsPayable);
-        entity.setAnnualCurrentDebt(annCurrentDebt);
-        entity.setAnnualLongTermDebt(annLongTermDebt);
-        entity.setAnnualOtherCurrentLiabilities(annOtherCurrentLiabilities);
-        entity.setAnnualOtherLiabilities(annOtherLiabilities);
-        entity.setAnnualRetainedEarnings(annRetainedEarnings);
-        entity.setAnnualTreasuryStock(annTreasuryStock);
-
-        /* --- Quarterly --- */
-        List<LocalDate> qDates = new ArrayList<>();
-        List<Long> qTotalAssets = new ArrayList<>();
-        List<Long> qTotalLiabilities = new ArrayList<>();
-        List<Long> qTotalEquity = new ArrayList<>();
-        List<Long> qCash = new ArrayList<>();
-        List<Long> qShortTermInvest = new ArrayList<>();
-        List<Long> qNetReceivables = new ArrayList<>();
-        List<Long> qInventory = new ArrayList<>();
-        List<Long> qOtherCurrentAssets = new ArrayList<>();
-        List<Long> qOtherAssets = new ArrayList<>();
-        List<Long> qAcctsPayable = new ArrayList<>();
-        List<Long> qCurrentDebt = new ArrayList<>();
-        List<Long> qLongTermDebt = new ArrayList<>();
-        List<Long> qOtherCurrentLiabilities = new ArrayList<>();
-        List<Long> qOtherLiabilities = new ArrayList<>();
-        List<Long> qRetainedEarnings = new ArrayList<>();
-        List<Long> qTreasuryStock = new ArrayList<>();
-
-        for (Map<String, String> r : quarterlyReports) {
-            qDates.add(parseDate(r.get("fiscalDateEnding")));
-            qTotalAssets.add(parseLong(r.get("totalAssets")));
-            qTotalLiabilities.add(parseLong(r.get("totalLiabilities")));
-            qTotalEquity.add(parseLong(r.get("totalShareholderEquity")));
-            qCash.add(parseLong(r.get("cashAndCashEquivalentsAtCarryingValue")));
-            qShortTermInvest.add(parseLong(r.get("shortTermInvestments")));
-            qNetReceivables.add(parseLong(r.get("netReceivables")));
-            qInventory.add(parseLong(r.get("inventory")));
-            qOtherCurrentAssets.add(parseLong(r.get("otherCurrentAssets")));
-            qOtherAssets.add(parseLong(r.get("otherAssets")));
-            qAcctsPayable.add(parseLong(r.get("accountsPayable")));
-            qCurrentDebt.add(parseLong(r.get("currentDebt")));
-            qLongTermDebt.add(parseLong(r.get("longTermDebt")));
-            qOtherCurrentLiabilities.add(parseLong(r.get("otherCurrentLiabilities")));
-            qOtherLiabilities.add(parseLong(r.get("otherLiabilities")));
-            qRetainedEarnings.add(parseLong(r.get("retainedEarnings")));
-            qTreasuryStock.add(parseLong(r.get("treasuryStock")));
-        }
-
-        entity.setQuarterlyFiscalDateEnding(qDates);
-        entity.setQuarterlyTotalAssets(qTotalAssets);
-        entity.setQuarterlyTotalLiabilities(qTotalLiabilities);
-        entity.setQuarterlyTotalShareholderEquity(qTotalEquity);
-        entity.setQuarterlyCashAndCashEquivalents(qCash);
-        entity.setQuarterlyShortTermInvestments(qShortTermInvest);
-        entity.setQuarterlyNetReceivables(qNetReceivables);
-        entity.setQuarterlyInventory(qInventory);
-        entity.setQuarterlyOtherCurrentAssets(qOtherCurrentAssets);
-        entity.setQuarterlyOtherAssets(qOtherAssets);
-        entity.setQuarterlyAccountsPayable(qAcctsPayable);
-        entity.setQuarterlyCurrentDebt(qCurrentDebt);
-        entity.setQuarterlyLongTermDebt(qLongTermDebt);
-        entity.setQuarterlyOtherCurrentLiabilities(qOtherCurrentLiabilities);
-        entity.setQuarterlyOtherLiabilities(qOtherLiabilities);
-        entity.setQuarterlyRetainedEarnings(qRetainedEarnings);
-        entity.setQuarterlyTreasuryStock(qTreasuryStock);
-
-        repository.save(entity);
     }
 
     @Override
@@ -226,45 +77,49 @@ public class BalanceSheetServiceImpl implements BalanceSheetService {
 
         return new BalanceSheetDTO(
                 e.getSymbol(),
-                e.getAnnualFiscalDateEnding(),
-                e.getAnnualTotalAssets(),
-                e.getAnnualTotalLiabilities(),
-                e.getAnnualTotalShareholderEquity(),
-                e.getAnnualCashAndCashEquivalents(),
-                e.getAnnualShortTermInvestments(),
-                e.getAnnualNetReceivables(),
-                e.getAnnualInventory(),
-                e.getAnnualOtherCurrentAssets(),
-                e.getAnnualOtherAssets(),
-                e.getAnnualAccountsPayable(),
-                e.getAnnualCurrentDebt(),
-                e.getAnnualLongTermDebt(),
-                e.getAnnualOtherCurrentLiabilities(),
-                e.getAnnualOtherLiabilities(),
-                e.getAnnualRetainedEarnings(),
-                e.getAnnualTreasuryStock(),
+                e.getAnnualFiscalDateEnding() != null ? Arrays.asList(e.getAnnualFiscalDateEnding()) : List.of(),
+                e.getAnnualTotalAssets() != null ? Arrays.asList(e.getAnnualTotalAssets()) : List.of(),
+                e.getAnnualTotalLiabilities() != null ? Arrays.asList(e.getAnnualTotalLiabilities()) : List.of(),
+                e.getAnnualTotalShareholderEquity() != null ? Arrays.asList(e.getAnnualTotalShareholderEquity()) : List.of(),
+                e.getAnnualCashAndCashEquivalents() != null ? Arrays.asList(e.getAnnualCashAndCashEquivalents()) : List.of(),
+                e.getAnnualShortTermInvestments() != null ? Arrays.asList(e.getAnnualShortTermInvestments()) : List.of(),
+                e.getAnnualNetReceivables() != null ? Arrays.asList(e.getAnnualNetReceivables()) : List.of(),
+                e.getAnnualInventory() != null ? Arrays.asList(e.getAnnualInventory()) : List.of(),
+                e.getAnnualOtherCurrentAssets() != null ? Arrays.asList(e.getAnnualOtherCurrentAssets()) : List.of(),
+                e.getAnnualOtherAssets() != null ? Arrays.asList(e.getAnnualOtherAssets()) : List.of(),
+                e.getAnnualAccountsPayable() != null ? Arrays.asList(e.getAnnualAccountsPayable()) : List.of(),
+                e.getAnnualCurrentDebt() != null ? Arrays.asList(e.getAnnualCurrentDebt()) : List.of(),
+                e.getAnnualLongTermDebt() != null ? Arrays.asList(e.getAnnualLongTermDebt()) : List.of(),
+                e.getAnnualOtherCurrentLiabilities() != null ? Arrays.asList(e.getAnnualOtherCurrentLiabilities()) : List.of(),
+                e.getAnnualOtherLiabilities() != null ? Arrays.asList(e.getAnnualOtherLiabilities()) : List.of(),
+                e.getAnnualRetainedEarnings() != null ? Arrays.asList(e.getAnnualRetainedEarnings()) : List.of(),
+                e.getAnnualTreasuryStock() != null ? Arrays.asList(e.getAnnualTreasuryStock()) : List.of(),
 
-                e.getQuarterlyFiscalDateEnding(),
-                e.getQuarterlyTotalAssets(),
-                e.getQuarterlyTotalLiabilities(),
-                e.getQuarterlyTotalShareholderEquity(),
-                e.getQuarterlyCashAndCashEquivalents(),
-                e.getQuarterlyShortTermInvestments(),
-                e.getQuarterlyNetReceivables(),
-                e.getQuarterlyInventory(),
-                e.getQuarterlyOtherCurrentAssets(),
-                e.getQuarterlyOtherAssets(),
-                e.getQuarterlyAccountsPayable(),
-                e.getQuarterlyCurrentDebt(),
-                e.getQuarterlyLongTermDebt(),
-                e.getQuarterlyOtherCurrentLiabilities(),
-                e.getQuarterlyOtherLiabilities(),
-                e.getQuarterlyRetainedEarnings(),
-                e.getQuarterlyTreasuryStock()
+                e.getQuarterlyFiscalDateEnding() != null ? Arrays.asList(e.getQuarterlyFiscalDateEnding()) : List.of(),
+                e.getQuarterlyTotalAssets() != null ? Arrays.asList(e.getQuarterlyTotalAssets()) : List.of(),
+                e.getQuarterlyTotalLiabilities() != null ? Arrays.asList(e.getQuarterlyTotalLiabilities()) : List.of(),
+                e.getQuarterlyTotalShareholderEquity() != null ? Arrays.asList(e.getQuarterlyTotalShareholderEquity()) : List.of(),
+                e.getQuarterlyCashAndCashEquivalents() != null ? Arrays.asList(e.getQuarterlyCashAndCashEquivalents()) : List.of(),
+                e.getQuarterlyShortTermInvestments() != null ? Arrays.asList(e.getQuarterlyShortTermInvestments()) : List.of(),
+                e.getQuarterlyNetReceivables() != null ? Arrays.asList(e.getQuarterlyNetReceivables()) : List.of(),
+                e.getQuarterlyInventory() != null ? Arrays.asList(e.getQuarterlyInventory()) : List.of(),
+                e.getQuarterlyOtherCurrentAssets() != null ? Arrays.asList(e.getQuarterlyOtherCurrentAssets()) : List.of(),
+                e.getQuarterlyOtherAssets() != null ? Arrays.asList(e.getQuarterlyOtherAssets()) : List.of(),
+                e.getQuarterlyAccountsPayable() != null ? Arrays.asList(e.getQuarterlyAccountsPayable()) : List.of(),
+                e.getQuarterlyCurrentDebt() != null ? Arrays.asList(e.getQuarterlyCurrentDebt()) : List.of(),
+                e.getQuarterlyLongTermDebt() != null ? Arrays.asList(e.getQuarterlyLongTermDebt()) : List.of(),
+                e.getQuarterlyOtherCurrentLiabilities() != null ? Arrays.asList(e.getQuarterlyOtherCurrentLiabilities()) : List.of(),
+                e.getQuarterlyOtherLiabilities() != null ? Arrays.asList(e.getQuarterlyOtherLiabilities()) : List.of(),
+                e.getQuarterlyRetainedEarnings() != null ? Arrays.asList(e.getQuarterlyRetainedEarnings()) : List.of(),
+                e.getQuarterlyTreasuryStock() != null ? Arrays.asList(e.getQuarterlyTreasuryStock()) : List.of()
         );
     }
 
-    /* === Helpers === */
-    private Long parseLong(String v) { return (v == null || v.isBlank()) ? 0L : Long.valueOf(v); }
-    private LocalDate parseDate(String v) { return (v == null || v.isBlank()) ? null : LocalDate.parse(v); }
+    private void log(String msg) {
+        System.out.println(LocalDateTime.now().format(dtf) + " | " + msg);
+    }
+
+    private void logErr(String msg) {
+        System.err.println(LocalDateTime.now().format(dtf) + " | " + msg);
+    }
 }

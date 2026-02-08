@@ -1,13 +1,12 @@
 package com.market.alphavantage.entity;
 
-import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @Entity
 @Table(name = "earnings_calendar")
@@ -15,26 +14,24 @@ import java.util.List;
 public class EarningsCalendar {
 
     @Id
-    private String id;  // e.g. "horizon_3month" or symbol+horizon
+    @Column(length = 20)
+    private String symbol;
 
-    @ElementCollection
-    private List<String> symbol;
+    @Column(nullable = false)
+    private String name;
 
-    @ElementCollection
-    private List<String> name;
+    @Column(name = "report_date")
+    private LocalDate reportDate;
 
-    @ElementCollection
-    private List<LocalDate> reportDate;
+    @Column(name = "fiscal_date_ending")
+    private LocalDate fiscalDateEnding;
 
-    @ElementCollection
-    private List<LocalDate> fiscalDateEnding;
+    @Column(nullable = true) // <-- allow nulls
+    private Double estimate;
 
-    @ElementCollection
-    private List<Double> estimate;
+    @Column(nullable = false)
+    private String currency;
 
-    @ElementCollection
-    private List<String> currency;
-
-    @ElementCollection
-    private List<String> timeOfTheDay;
+    @Column(name = "time_of_the_day")
+    private String timeOfTheDay;
 }

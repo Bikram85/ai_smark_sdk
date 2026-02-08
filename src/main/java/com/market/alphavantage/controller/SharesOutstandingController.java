@@ -15,7 +15,7 @@ public class SharesOutstandingController {
 
     private final SharesOutstandingService service;
 
-    @PostMapping("/load")
+    @GetMapping("/load")
     public ResponseEntity<String> load() {
         service.loadSharesOutstanding();
         return ResponseEntity.ok("Shares Outstanding loaded for ");

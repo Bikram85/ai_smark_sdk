@@ -1,13 +1,12 @@
 package com.market.alphavantage.entity;
 
-import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @Entity
 @Table(name = "insider_transactions")
@@ -15,32 +14,33 @@ import java.util.List;
 public class InsiderTransaction {
 
     @Id
+    @Column(name = "symbol", nullable = false)
     private String symbol;
 
-    @ElementCollection
-    private List<LocalDate> transactionDate;
+    @Column(name = "transaction_dates", columnDefinition = "date[]")
+    private LocalDate[] transactionDates;
 
-    @ElementCollection
-    private List<String> insiderName;
+    @Column(name = "insider_names", columnDefinition = "text[]")
+    private String[] insiderNames;
 
-    @ElementCollection
-    private List<String> relationship;
+    @Column(name = "relationships", columnDefinition = "text[]")
+    private String[] relationships;
 
-    @ElementCollection
-    private List<String> transactionType;
+    @Column(name = "transaction_types", columnDefinition = "text[]")
+    private String[] transactionTypes;
 
-    @ElementCollection
-    private List<String> ownershipType;
+    @Column(name = "ownership_types", columnDefinition = "text[]")
+    private String[] ownershipTypes;
 
-    @ElementCollection
-    private List<Long> sharesTransacted;
+    @Column(name = "shares_transacted", columnDefinition = "bigint[]")
+    private Long[] sharesTransacted;
 
-    @ElementCollection
-    private List<Long> sharesOwned;
+    @Column(name = "shares_owned", columnDefinition = "bigint[]")
+    private Long[] sharesOwned;
 
-    @ElementCollection
-    private List<Double> avgPrice;
+    @Column(name = "avg_prices", columnDefinition = "double precision[]")
+    private Double[] avgPrices;
 
-    @ElementCollection
-    private List<String> reportedTitle;
+    @Column(name = "reported_titles", columnDefinition = "text[]")
+    private String[] reportedTitles;
 }

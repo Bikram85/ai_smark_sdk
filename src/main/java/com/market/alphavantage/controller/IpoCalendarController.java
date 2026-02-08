@@ -16,15 +16,15 @@ public class IpoCalendarController {
 
     private final IpoCalendarService service;
 
-    @PostMapping("/load")
+    @GetMapping("/load")
     public ResponseEntity<String> load() {
         service.loadIpoCalendar();
         return ResponseEntity.ok("IPO Calendar loaded");
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<IpoCalendarDTO> get(@PathVariable String id) {
-        IpoCalendarDTO dto = service.getIpoCalendar(id);
+    @GetMapping("/data")
+    public ResponseEntity<IpoCalendarDTO> get() {
+        IpoCalendarDTO dto = service.getIpoCalendar();
         if (dto == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(dto);
     }

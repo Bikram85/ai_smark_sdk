@@ -1,6 +1,7 @@
 package com.market.alphavantage.controller;
 
 
+import com.market.alphavantage.dto.IncomeStatementDTO;
 import com.market.alphavantage.entity.IncomeStatement;
 import com.market.alphavantage.service.IncomeStatementService;
 import lombok.RequiredArgsConstructor;
@@ -31,11 +32,11 @@ public class IncomeStatementController {
      * Get saved income statement
      */
     @GetMapping("/{symbol}")
-    public ResponseEntity<IncomeStatement> getIncomeStatement(
+    public ResponseEntity<IncomeStatementDTO> getIncomeStatement(
             @PathVariable String symbol) {
 
-        IncomeStatement data =
-                service.getIncomeStatement(symbol.toUpperCase());
+        IncomeStatementDTO data =
+                service.getIncomeStatementDTO(symbol.toUpperCase());
 
         if (data == null)
             return ResponseEntity.notFound().build();

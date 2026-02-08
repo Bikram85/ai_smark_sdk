@@ -1,14 +1,12 @@
 package com.market.alphavantage.entity;
 
-
-import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @Entity
 @Table(name = "equity_technical_indicator")
@@ -16,16 +14,29 @@ import java.util.List;
 public class EquityTechnicalIndicator {
 
     @Id
-    private String id; // symbol + "_" + interval + "_" + timePeriod + "_" + seriesType
+    @Column(length = 100)
+    private String id; // symbol + "_" + interval + "_" + timePeriod + "_" + seriesType + "_" + function
 
+    @Column(nullable = false)
     private String symbol;
+
+    @Column(nullable = false)
     private String interval;
+
+    @Column(nullable = false)
     private Integer timePeriod;
+
+    @Column(nullable = false)
     private String seriesType;
 
-    @ElementCollection
-    private List<LocalDate> date;
+    @Column(nullable = false)
+    private String function; // NEW: SMA, RSI, MACD, etc.
 
-    @ElementCollection
-    private List<Double> sma;
+    // Store dates as LocalDate array
+    @Column(columnDefinition = "date[]")
+    private LocalDate[] dates;
+
+    // Generic numeric values for the function
+    @Column(columnDefinition = "double precision[]")
+    private Double[] values; // NEW: replace smaValues with generic
 }

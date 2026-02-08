@@ -1,13 +1,12 @@
 package com.market.alphavantage.entity;
 
-import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @Entity
 @Table(name = "digital_currency_daily")
@@ -15,29 +14,34 @@ import java.util.List;
 public class DigitalCurrencyDaily {
 
     @Id
-    private String id; // combination symbol + "_" + market
+    @Column(length = 50)
+    private String id; // combination: symbol + "_" + market
 
+    @Column(nullable = false)
     private String symbol;
+
+    @Column(nullable = false)
     private String market;
 
-    @ElementCollection
-    private List<LocalDate> tradeDate;
+    // Store all values as arrays for single-row storage
+    @Column(columnDefinition = "DATE[]")
+    private LocalDate[] tradeDate;
 
-    @ElementCollection
-    private List<Double> open;
+    @Column(columnDefinition = "DOUBLE PRECISION[]")
+    private Double[] open;
 
-    @ElementCollection
-    private List<Double> high;
+    @Column(columnDefinition = "DOUBLE PRECISION[]")
+    private Double[] high;
 
-    @ElementCollection
-    private List<Double> low;
+    @Column(columnDefinition = "DOUBLE PRECISION[]")
+    private Double[] low;
 
-    @ElementCollection
-    private List<Double> close;
+    @Column(columnDefinition = "DOUBLE PRECISION[]")
+    private Double[] close;
 
-    @ElementCollection
-    private List<Double> volume;
+    @Column(columnDefinition = "DOUBLE PRECISION[]")
+    private Double[] volume;
 
-    @ElementCollection
-    private List<Double> marketCap;
+    @Column(columnDefinition = "DOUBLE PRECISION[]")
+    private Double[] marketCap;
 }

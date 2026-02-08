@@ -1,13 +1,12 @@
 package com.market.alphavantage.entity;
 
-import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @Entity
 @Table(name = "forex_technical_indicator")
@@ -15,16 +14,26 @@ import java.util.List;
 public class ForexTechnicalIndicator {
 
     @Id
-    private String id; // symbol + "_" + interval + "_" + timePeriod + "_" + seriesType
+    @Column(length = 100)
+    private String id; // e.g., symbol + "_" + interval + "_" + timePeriod + "_" + seriesType
 
+    @Column(nullable = false)
     private String symbol;
+
+    @Column(nullable = false)
     private String interval;
-    private Integer timePeriod;
-    private String seriesType;
 
-    @ElementCollection
-    private List<LocalDate> date;
+    @Column
+    private Integer timePeriod; // nullable for indicators without a time period
 
-    @ElementCollection
-    private List<Double> sma;
+    @Column(nullable = false)
+    private String seriesType; // e.g., "close", "open", etc.
+
+    // Store all dates as array
+    @Column(columnDefinition = "DATE[]")
+    private LocalDate[] dates;
+
+    // Store all SMA values as array
+    @Column(columnDefinition = "DOUBLE PRECISION[]")
+    private Double[] smaValues;
 }

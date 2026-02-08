@@ -1,13 +1,12 @@
 package com.market.alphavantage.entity;
 
-import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @Entity
 @Table(name = "dividends")
@@ -15,11 +14,13 @@ import java.util.List;
 public class Dividend {
 
     @Id
+    @Column(name = "symbol")
     private String symbol;
 
-    @ElementCollection
-    private List<LocalDate> exDividendDate;
+    // PostgreSQL arrays
+    @Column(name = "ex_dividend_dates", columnDefinition = "date[]")
+    private LocalDate[] exDividendDates;
 
-    @ElementCollection
-    private List<Double> dividendAmount;
+    @Column(name = "dividend_amounts", columnDefinition = "double precision[]")
+    private Double[] dividendAmounts;
 }

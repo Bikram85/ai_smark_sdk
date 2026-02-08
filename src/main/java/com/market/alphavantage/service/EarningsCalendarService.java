@@ -6,6 +6,6 @@ public interface EarningsCalendarService {
 
     void loadEarningsCalendar(String horizon);
 
-    EarningsCalendarDTO getEarningsCalendar(String id);
+    EarningsCalendarDTO getEarningsCalendar();
 }
 

@@ -1,7 +1,5 @@
 package com.market.alphavantage.service.impl;
 
-
-
 import com.market.alphavantage.dto.InsiderTransactionDTO;
 import com.market.alphavantage.entity.InsiderTransaction;
 import com.market.alphavantage.entity.Symbol;
@@ -14,11 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
-
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -36,157 +33,163 @@ public class InsiderTransactionServiceImpl implements InsiderTransactionService 
     @Value("${alphavantage.apiKey}")
     private String apiKey;
 
+    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     @Override
     public void loadInsiderTransactions() {
-
         List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
-
         int total = stocks.size();
 
         AtomicInteger processed = new AtomicInteger(0);
         AtomicInteger success = new AtomicInteger(0);
         AtomicInteger failed = new AtomicInteger(0);
 
-        stocks.forEach(symbol -> {
-            processSymbol(symbol.getSymbol(), "Stock",
-                    processed, success, failed, total);
-        });
+        stocks.forEach(symbol -> processSymbol(symbol.getSymbol(), processed, success, failed, total));
 
-        System.out.println("\n===== SUMMARY =====");
-        System.out.println("Total symbols : " + total);
-        System.out.println("Success       : " + success.get());
-        System.out.println("Failed        : " + failed.get());
+        logInfo("===== SUMMARY =====");
+        logInfo("Total symbols : " + total);
+        logInfo("Success       : " + success.get());
+        logInfo("Failed        : " + failed.get());
     }
 
     private void processSymbol(String symbol,
-                               String type,
                                AtomicInteger processed,
                                AtomicInteger success,
                                AtomicInteger failed,
                                int total) {
-
         int current = processed.incrementAndGet();
-
         try {
             fetchDetails(symbol);
             success.incrementAndGet();
-
-            System.out.println("loadInsiderTransactions Processed "
-                    + current + "/" + total
-                    + " SUCCESS: " + symbol);
-
+            logInfo("Processed " + current + "/" + total + " SUCCESS: " + symbol);
         } catch (Exception ex) {
             failed.incrementAndGet();
-
-            System.err.println("loadInsiderTransactions Processed "
-                    + current + "/" + total
-                    + " FAILED: " + symbol
-                    + " Reason: " + ex.getMessage());
+            logError("Processed " + current + "/" + total + " FAILED: " + symbol + " Reason: " + ex.getMessage());
         }
     }
 
-
-
-
-    public void fetchDetails(String symbol) {
-
+    private void fetchDetails(String symbol) {
         String url = baseUrl
                 + "?function=INSIDER_TRANSACTIONS"
-                + "&symbol=" + symbol
+                + "&symbol=" + symbol.toUpperCase()
                 + "&apikey=" + apiKey;
 
-        Map<String, Object> response =
-                restTemplate.getForObject(url, Map.class);
-
-        if (response == null || response.isEmpty())
+        Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+        if (response == null || response.isEmpty()) {
+            logError("No response for " + symbol);
             return;
-
-        // Some APIs wrap the actual list in a key like "insiderTransactions"
-        List<Map<String, String>> list =
-                (List<Map<String, String>>) response.get("insiderTransactions");
-
-        if (list == null)
-            return;
-
-        InsiderTransaction e = new InsiderTransaction();
-        e.setSymbol(symbol);
-
-        List<LocalDate> dates = new ArrayList<>();
-        List<String> names = new ArrayList<>();
-        List<String> relationships = new ArrayList<>();
-        List<String> types = new ArrayList<>();
-        List<String> ownerships = new ArrayList<>();
-        List<Long> transacted = new ArrayList<>();
-        List<Long> owned = new ArrayList<>();
-        List<Double> avgPrices = new ArrayList<>();
-        List<String> titles = new ArrayList<>();
-
-        for (Map<String, String> r : list) {
-            dates.add(parseDate(r.get("transactionDate")));
-            names.add(r.get("insiderName"));
-            relationships.add(r.get("relationship"));
-            types.add(r.get("transactionType"));
-            ownerships.add(r.get("ownershipType"));
-            transacted.add(parseLong(r.get("sharesTransacted")));
-            owned.add(parseLong(r.get("sharesOwned")));
-            avgPrices.add(parseDouble(r.get("averagePrice")));
-            titles.add(r.get("reportedTitle"));
         }
 
-        e.setTransactionDate(dates);
-        e.setInsiderName(names);
-        e.setRelationship(relationships);
-        e.setTransactionType(types);
-        e.setOwnershipType(ownerships);
+        List<Map<String, Object>> list =
+                (List<Map<String, Object>>) response.get("data");
+
+        if (list == null || list.isEmpty()) {
+            logError("No insider transactions for " + symbol);
+            return;
+        }
+
+        // -------- SORT BY DATE (2019 → 2020 → 2021 → latest) --------
+        list = list.stream()
+                .filter(r -> r.get("transaction_date") != null)
+                .sorted((a, b) -> {
+                    LocalDate d1 = parseDate((String) a.get("transaction_date"));
+                    LocalDate d2 = parseDate((String) b.get("transaction_date"));
+                    if (d1 == null) return -1;
+                    if (d2 == null) return 1;
+                    return d1.compareTo(d2);
+                })
+                .toList();
+
+        InsiderTransaction e = new InsiderTransaction();
+        e.setSymbol(symbol.toUpperCase());
+
+        int size = list.size();
+
+        LocalDate[] dates = new LocalDate[size];
+        String[] names = new String[size];
+        String[] relationships = new String[size];
+        String[] types = new String[size];
+        String[] ownerships = new String[size];
+        Long[] transacted = new Long[size];
+        Long[] owned = new Long[size];
+        Double[] avgPrices = new Double[size];
+        String[] titles = new String[size];
+
+        for (int i = 0; i < size; i++) {
+            Map<String, Object> r = list.get(i);
+
+            dates[i] = parseDate((String) r.get("transaction_date"));
+            names[i] = (String) r.getOrDefault("executive", "");
+            titles[i] = (String) r.getOrDefault("executive_title", "");
+
+            // Not provided by API
+            relationships[i] = "";
+            ownerships[i] = "";
+
+            types[i] = (String) r.getOrDefault("acquisition_or_disposal", "");
+
+            transacted[i] = parseLong(String.valueOf(r.get("shares")));
+            owned[i] = 0L; // not available
+            avgPrices[i] = parseDouble((String) r.get("share_price"));
+        }
+
+        e.setTransactionDates(dates);
+        e.setInsiderNames(names);
+        e.setRelationships(relationships);
+        e.setTransactionTypes(types);
+        e.setOwnershipTypes(ownerships);
         e.setSharesTransacted(transacted);
         e.setSharesOwned(owned);
-        e.setAvgPrice(avgPrices);
-        e.setReportedTitle(titles);
+        e.setAvgPrices(avgPrices);
+        e.setReportedTitles(titles);
 
         repository.save(e);
+        logInfo("Saved insider transactions for symbol: " + symbol);
     }
+
 
     @Override
     public InsiderTransactionDTO getInsiderTransactions(String symbol) {
-        InsiderTransaction e = repository.findById(symbol).orElse(null);
+        InsiderTransaction e = repository.findById(symbol.toUpperCase()).orElse(null);
         if (e == null) return null;
 
         return new InsiderTransactionDTO(
                 e.getSymbol(),
-                e.getTransactionDate(),
-                e.getInsiderName(),
-                e.getRelationship(),
-                e.getTransactionType(),
-                e.getOwnershipType(),
-                e.getSharesTransacted(),
-                e.getSharesOwned(),
-                e.getAvgPrice(),
-                e.getReportedTitle()
+                e.getTransactionDates() != null ? Arrays.asList(e.getTransactionDates()) : new ArrayList<>(),
+                e.getInsiderNames() != null ? Arrays.asList(e.getInsiderNames()) : new ArrayList<>(),
+                e.getRelationships() != null ? Arrays.asList(e.getRelationships()) : new ArrayList<>(),
+                e.getTransactionTypes() != null ? Arrays.asList(e.getTransactionTypes()) : new ArrayList<>(),
+                e.getOwnershipTypes() != null ? Arrays.asList(e.getOwnershipTypes()) : new ArrayList<>(),
+                e.getSharesTransacted() != null ? Arrays.asList(e.getSharesTransacted()) : new ArrayList<>(),
+                e.getSharesOwned() != null ? Arrays.asList(e.getSharesOwned()) : new ArrayList<>(),
+                e.getAvgPrices() != null ? Arrays.asList(e.getAvgPrices()) : new ArrayList<>(),
+                e.getReportedTitles() != null ? Arrays.asList(e.getReportedTitles()) : new ArrayList<>()
         );
     }
 
     /* ===== Helpers ===== */
+
+    private void logInfo(String msg) {
+        System.out.println("[" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) + "] INFO: " + msg);
+    }
+
+    private void logError(String msg) {
+        System.err.println("[" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) + "] ERROR: " + msg);
+    }
+
     private LocalDate parseDate(String val) {
-        try {
-            return (val == null || val.isBlank()) ? null : LocalDate.parse(val);
-        } catch (Exception ex) {
-            return null;
-        }
+        if (val == null || val.isBlank()) return null;
+        try { return LocalDate.parse(val); }
+        catch (Exception e) { return null; }
     }
 
     private Long parseLong(String val) {
-        try {
-            return (val == null || val.isBlank()) ? 0L : Long.valueOf(val);
-        } catch (Exception ex) {
-            return 0L;
-        }
+        try { return val == null || val.isBlank() ? 0L : Long.parseLong(val); }
+        catch (Exception e) { return 0L; }
     }
 
     private Double parseDouble(String val) {
-        try {
-            return (val == null || val.isBlank()) ? 0.0 : Double.valueOf(val);
-        } catch (Exception ex) {
-            return 0.0;
-        }
+        try { return val == null || val.isBlank() ? 0.0 : Double.parseDouble(val); }
+        catch (Exception e) { return 0.0; }
     }
 }

@@ -10,8 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
-
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -30,22 +31,15 @@ public class GoldSilverHistoryServiceImpl implements GoldSilverHistoryService {
     @Value("${alphavantage.apiKey}")
     private String apiKey;
 
+    private static final String INTERVAL = "daily";
+    private static final List<String> GOLDSILVER_SYMBOLS = List.of("GOLD", "SILVER");
 
-    private static final String OCURRENCE = "daily";
-
-
-    private static final List<String> GOLDSILVER_SYMBOLS = List.of(
-            "GOLD",
-            "SILVER"
-    );
+    private final DateTimeFormatter logFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Override
     public void loadHistory() {
-        GOLDSILVER_SYMBOLS.forEach(symbol ->
-                fetchDetails(symbol, OCURRENCE)
-        );
+        GOLDSILVER_SYMBOLS.forEach(symbol -> fetchDetails(symbol, INTERVAL));
     }
-
 
     private void fetchDetails(String symbol, String interval) {
         String url = baseUrl
@@ -54,64 +48,73 @@ public class GoldSilverHistoryServiceImpl implements GoldSilverHistoryService {
                 + "&interval=" + interval.toLowerCase()
                 + "&apikey=" + apiKey;
 
-        Map<String, Object> response = restTemplate.getForObject(url, Map.class);
-        if (response == null || response.isEmpty()) return;
+        try {
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            if (response == null || response.isEmpty()) {
+                logError("No response for " + symbol + " -> " + interval);
+                return;
+            }
 
-        Map<String, Map<String, String>> series =
-                (Map<String, Map<String, String>>) response.get("Time Series (" + interval.toUpperCase() + ")");
-        if (series == null) return;
+            // Correct key is "data"
+            List<Map<String, Object>> series = (List<Map<String, Object>>) response.get("data");
+            if (series == null || series.isEmpty()) {
+                logError("No series data for " + symbol + " -> " + interval);
+                return;
+            }
 
-        GoldSilverHistory entity = new GoldSilverHistory();
-        String id = symbol.toUpperCase() + "_" + interval.toLowerCase();
-        entity.setId(id);
-        entity.setSymbol(symbol.toUpperCase());
-        entity.setInterval(interval.toLowerCase());
+            // Sort by date ascending (oldest first)
+            List<Map<String, Object>> sortedSeries = series.stream()
+                    .filter(d -> d.get("date") != null)
+                    .sorted((a, b) -> ((String) a.get("date")).compareTo((String) b.get("date")))
+                    .toList();
 
-        List<LocalDate> tradeDates = new ArrayList<>();
-        List<Double> opens = new ArrayList<>();
-        List<Double> highs = new ArrayList<>();
-        List<Double> lows = new ArrayList<>();
-        List<Double> closes = new ArrayList<>();
-        List<Long> volumes = new ArrayList<>();
+            List<LocalDate> tradeDates = new ArrayList<>();
+            List<Double> opens = new ArrayList<>();
+            List<Double> highs = new ArrayList<>();
+            List<Double> lows = new ArrayList<>();
+            List<Double> closes = new ArrayList<>();
+            List<Long> volumes = new ArrayList<>();
 
-        series.forEach((date, values) -> {
-            tradeDates.add(parseDate(date));
-            opens.add(parseDouble(values.get("1. open")));
-            highs.add(parseDouble(values.get("2. high")));
-            lows.add(parseDouble(values.get("3. low")));
-            closes.add(parseDouble(values.get("4. close")));
-            volumes.add(parseLong(values.get("5. volume")));
-        });
+            for (Map<String, Object> values : sortedSeries) {
+                String dateStr = (String) values.get("date");
+                tradeDates.add(parseDate(dateStr));
 
-        entity.setTradeDate(tradeDates);
-        entity.setOpen(opens);
-        entity.setHigh(highs);
-        entity.setLow(lows);
-        entity.setClose(closes);
-        entity.setVolume(volumes);
+                // Some APIs may not provide open/high/low/volume, only "price"
+                Double price = parseDouble((String) values.get("price"));
+                opens.add(price);
+                highs.add(price);
+                lows.add(price);
+                closes.add(price);
 
-        repository.save(entity);
+                // Volume may not exist, so set 0
+                Long vol = parseLong(values.get("volume"));
+                volumes.add(vol);
+            }
+
+            // Save to entity
+            GoldSilverHistory entity = new GoldSilverHistory();
+            String id = symbol.toUpperCase() + "_" + interval.toLowerCase();
+            entity.setId(id);
+            entity.setSymbol(symbol.toUpperCase());
+            entity.setInterval(interval.toLowerCase());
+
+            entity.setTradeDate(tradeDates.toArray(new LocalDate[0]));
+            entity.setOpen(opens.toArray(new Double[0]));
+            entity.setHigh(highs.toArray(new Double[0]));
+            entity.setLow(lows.toArray(new Double[0]));
+            entity.setClose(closes.toArray(new Double[0]));
+            entity.setVolume(volumes.toArray(new Long[0]));
+
+            repository.save(entity);
+            logInfo("Saved history for " + id);
+
+        } catch (Exception ex) {
+            logError("Failed to fetch history for " + symbol + " -> " + interval
+                    + ". Reason: " + ex.getMessage());
+        }
     }
 
-    @Override
-    public GoldSilverHistoryDTO getHistory(String symbol, String interval) {
-        String id = symbol.toUpperCase() + "_" + interval.toLowerCase();
-        GoldSilverHistory e = repository.findById(id).orElse(null);
-        if (e == null) return null;
-
-        return new GoldSilverHistoryDTO(
-                e.getId(),
-                e.getSymbol(),
-                e.getInterval(),
-                e.getTradeDate(),
-                e.getOpen(),
-                e.getHigh(),
-                e.getLow(),
-                e.getClose(),
-                e.getVolume()
-        );
-    }
-
+    /* ===== Helper parsers ===== */
     private LocalDate parseDate(String val) {
         try {
             return val == null || val.isBlank() ? null : LocalDate.parse(val);
@@ -128,11 +131,61 @@ public class GoldSilverHistoryServiceImpl implements GoldSilverHistoryService {
         }
     }
 
+    private Long parseLong(Object val) {
+        try {
+            if (val == null) return 0L;
+            if (val instanceof String) return Long.parseLong((String) val);
+            if (val instanceof Number) return ((Number) val).longValue();
+            return 0L;
+        } catch (Exception ex) {
+            return 0L;
+        }
+    }
+
+
+    @Override
+    public GoldSilverHistoryDTO getHistory(String symbol, String interval) {
+        String id = symbol.toUpperCase() + "_" + interval.toLowerCase();
+        GoldSilverHistory e = repository.findById(id).orElse(null);
+        if (e == null) {
+            logInfo("No history found for " + symbol + " -> " + interval);
+            return null;
+        }
+
+        GoldSilverHistoryDTO dto = new GoldSilverHistoryDTO();
+        dto.setId(e.getId());
+        dto.setSymbol(e.getSymbol());
+        dto.setInterval(e.getInterval());
+
+        // Convert arrays to lists for DTO
+        dto.setTradeDate(e.getTradeDate() != null ? List.of(e.getTradeDate()) : List.of());
+        dto.setOpen(e.getOpen() != null ? List.of(e.getOpen()) : List.of());
+        dto.setHigh(e.getHigh() != null ? List.of(e.getHigh()) : List.of());
+        dto.setLow(e.getLow() != null ? List.of(e.getLow()) : List.of());
+        dto.setClose(e.getClose() != null ? List.of(e.getClose()) : List.of());
+        dto.setVolume(e.getVolume() != null ? List.of(e.getVolume()) : List.of());
+
+        logInfo("Retrieved history for " + symbol + " -> " + interval);
+        return dto;
+    }
+
+
+
+
     private Long parseLong(String val) {
         try {
             return val == null || val.isBlank() ? 0L : Long.valueOf(val);
         } catch (Exception ex) {
             return 0L;
         }
+    }
+
+    /* ===== Logging ===== */
+    private void logInfo(String msg) {
+        System.out.println("[" + LocalDateTime.now().format(logFormatter) + "] INFO: " + msg);
+    }
+
+    private void logError(String msg) {
+        System.err.println("[" + LocalDateTime.now().format(logFormatter) + "] ERROR: " + msg);
     }
 }

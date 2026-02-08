@@ -1,11 +1,12 @@
 package com.market.alphavantage.service;
 
-import com.market.alphavantage.entity.IncomeStatement;
+import com.market.alphavantage.dto.IncomeStatementDTO;
+
 
 public interface IncomeStatementService {
 
     void loadIncomeStatement();
 
-    IncomeStatement getIncomeStatement(String symbol);
+    IncomeStatementDTO getIncomeStatementDTO(String symbol);
 }
 

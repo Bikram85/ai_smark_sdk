@@ -17,6 +17,8 @@ public class EquityTechnicalIndicatorDTO {
     private String interval;
     private Integer timePeriod;
     private String seriesType;
-    private List<LocalDate> date;
-    private List<Double> sma;
+    private String function; // NEW FIELD
+
+    private List<LocalDate> dates;
+    private List<Double> values; // NEW FIELD
 }

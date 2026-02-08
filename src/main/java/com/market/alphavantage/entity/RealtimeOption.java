@@ -1,12 +1,10 @@
 package com.market.alphavantage.entity;
 
-import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
-
-import java.util.List;
 
 @Entity
 @Table(name = "realtime_options")
@@ -16,42 +14,79 @@ public class RealtimeOption {
     @Id
     private String symbol;
 
-    @ElementCollection
-    private List<String> expirationDate;
+    /* ===== CALLS ===== */
 
-    @ElementCollection
-    private List<String> optionType; // "call" or "put"
+    @Column(columnDefinition = "text[]")
+    private String[] callExpirationDate;
 
-    @ElementCollection
-    private List<Double> strikePrice;
+    @Column(columnDefinition = "double precision[]")
+    private Double[] callStrikePrice;
 
-    @ElementCollection
-    private List<Double> lastPrice;
+    @Column(columnDefinition = "double precision[]")
+    private Double[] callLastPrice;
 
-    @ElementCollection
-    private List<Double> bid;
+    @Column(columnDefinition = "double precision[]")
+    private Double[] callBid;
 
-    @ElementCollection
-    private List<Double> ask;
+    @Column(columnDefinition = "double precision[]")
+    private Double[] callAsk;
 
-    @ElementCollection
-    private List<Long> volume;
+    @Column(columnDefinition = "bigint[]")
+    private Long[] callVolume;
 
-    @ElementCollection
-    private List<Long> openInterest;
+    @Column(columnDefinition = "bigint[]")
+    private Long[] callOpenInterest;
 
-    @ElementCollection
-    private List<Double> impliedVolatility;
+    @Column(columnDefinition = "double precision[]")
+    private Double[] callImpliedVolatility;
 
-    @ElementCollection
-    private List<Double> delta;
+    @Column(columnDefinition = "double precision[]")
+    private Double[] callDelta;
 
-    @ElementCollection
-    private List<Double> gamma;
+    @Column(columnDefinition = "double precision[]")
+    private Double[] callGamma;
 
-    @ElementCollection
-    private List<Double> theta;
+    @Column(columnDefinition = "double precision[]")
+    private Double[] callTheta;
 
-    @ElementCollection
-    private List<Double> vega;
+    @Column(columnDefinition = "double precision[]")
+    private Double[] callVega;
+
+    /* ===== PUTS ===== */
+
+    @Column(columnDefinition = "text[]")
+    private String[] putExpirationDate;
+
+    @Column(columnDefinition = "double precision[]")
+    private Double[] putStrikePrice;
+
+    @Column(columnDefinition = "double precision[]")
+    private Double[] putLastPrice;
+
+    @Column(columnDefinition = "double precision[]")
+    private Double[] putBid;
+
+    @Column(columnDefinition = "double precision[]")
+    private Double[] putAsk;
+
+    @Column(columnDefinition = "bigint[]")
+    private Long[] putVolume;
+
+    @Column(columnDefinition = "bigint[]")
+    private Long[] putOpenInterest;
+
+    @Column(columnDefinition = "double precision[]")
+    private Double[] putImpliedVolatility;
+
+    @Column(columnDefinition = "double precision[]")
+    private Double[] putDelta;
+
+    @Column(columnDefinition = "double precision[]")
+    private Double[] putGamma;
+
+    @Column(columnDefinition = "double precision[]")
+    private Double[] putTheta;
+
+    @Column(columnDefinition = "double precision[]")
+    private Double[] putVega;
 }

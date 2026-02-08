@@ -1,58 +1,126 @@
 package com.market.alphavantage.entity;
 
-import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.Data;
+import lombok.*;
 
 import java.time.LocalDate;
-import java.util.List;
 
-@Entity
-@Table(name = "balance_sheet")
 @Data
+@Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Table(name = "balance_sheet")
 public class BalanceSheet {
 
     @Id
     private String symbol;
 
-    /* ---------- Annual ---------- */
-    @ElementCollection
-    private List<LocalDate> annualFiscalDateEnding;
-    @ElementCollection private List<Long> annualTotalAssets;
-    @ElementCollection private List<Long> annualTotalLiabilities;
-    @ElementCollection private List<Long> annualTotalShareholderEquity;
-    @ElementCollection private List<Long> annualCashAndCashEquivalents;
-    @ElementCollection private List<Long> annualShortTermInvestments;
-    @ElementCollection private List<Long> annualNetReceivables;
-    @ElementCollection private List<Long> annualInventory;
-    @ElementCollection private List<Long> annualOtherCurrentAssets;
-    @ElementCollection private List<Long> annualOtherAssets;
-    @ElementCollection private List<Long> annualAccountsPayable;
-    @ElementCollection private List<Long> annualCurrentDebt;
-    @ElementCollection private List<Long> annualLongTermDebt;
-    @ElementCollection private List<Long> annualOtherCurrentLiabilities;
-    @ElementCollection private List<Long> annualOtherLiabilities;
-    @ElementCollection private List<Long> annualRetainedEarnings;
-    @ElementCollection private List<Long> annualTreasuryStock;
+    /* ================= ANNUAL ================= */
 
-    /* ---------- Quarterly ---------- */
-    @ElementCollection private List<LocalDate> quarterlyFiscalDateEnding;
-    @ElementCollection private List<Long> quarterlyTotalAssets;
-    @ElementCollection private List<Long> quarterlyTotalLiabilities;
-    @ElementCollection private List<Long> quarterlyTotalShareholderEquity;
-    @ElementCollection private List<Long> quarterlyCashAndCashEquivalents;
-    @ElementCollection private List<Long> quarterlyShortTermInvestments;
-    @ElementCollection private List<Long> quarterlyNetReceivables;
-    @ElementCollection private List<Long> quarterlyInventory;
-    @ElementCollection private List<Long> quarterlyOtherCurrentAssets;
-    @ElementCollection private List<Long> quarterlyOtherAssets;
-    @ElementCollection private List<Long> quarterlyAccountsPayable;
-    @ElementCollection private List<Long> quarterlyCurrentDebt;
-    @ElementCollection private List<Long> quarterlyLongTermDebt;
-    @ElementCollection private List<Long> quarterlyOtherCurrentLiabilities;
-    @ElementCollection private List<Long> quarterlyOtherLiabilities;
-    @ElementCollection private List<Long> quarterlyRetainedEarnings;
-    @ElementCollection private List<Long> quarterlyTreasuryStock;
+    @Column(name = "annual_fiscal_date_ending")
+    private LocalDate[] annualFiscalDateEnding;
+
+    @Column(name = "annual_total_assets", columnDefinition = "BIGINT[]")
+    private Long[] annualTotalAssets;
+
+    @Column(name = "annual_total_liabilities", columnDefinition = "BIGINT[]")
+    private Long[] annualTotalLiabilities;
+
+    @Column(name = "annual_total_shareholder_equity", columnDefinition = "BIGINT[]")
+    private Long[] annualTotalShareholderEquity;
+
+    @Column(name = "annual_cash_and_cash_equivalents", columnDefinition = "BIGINT[]")
+    private Long[] annualCashAndCashEquivalents;
+
+    @Column(name = "annual_short_term_investments", columnDefinition = "BIGINT[]")
+    private Long[] annualShortTermInvestments;
+
+    @Column(name = "annual_net_receivables", columnDefinition = "BIGINT[]")
+    private Long[] annualNetReceivables;
+
+    @Column(name = "annual_inventory", columnDefinition = "BIGINT[]")
+    private Long[] annualInventory;
+
+    @Column(name = "annual_other_current_assets", columnDefinition = "BIGINT[]")
+    private Long[] annualOtherCurrentAssets;
+
+    @Column(name = "annual_other_assets", columnDefinition = "BIGINT[]")
+    private Long[] annualOtherAssets;
+
+    @Column(name = "annual_accounts_payable", columnDefinition = "BIGINT[]")
+    private Long[] annualAccountsPayable;
+
+    @Column(name = "annual_current_debt", columnDefinition = "BIGINT[]")
+    private Long[] annualCurrentDebt;
+
+    @Column(name = "annual_long_term_debt", columnDefinition = "BIGINT[]")
+    private Long[] annualLongTermDebt;
+
+    @Column(name = "annual_other_current_liabilities", columnDefinition = "BIGINT[]")
+    private Long[] annualOtherCurrentLiabilities;
+
+    @Column(name = "annual_other_liabilities", columnDefinition = "BIGINT[]")
+    private Long[] annualOtherLiabilities;
+
+    @Column(name = "annual_retained_earnings", columnDefinition = "BIGINT[]")
+    private Long[] annualRetainedEarnings;
+
+    @Column(name = "annual_treasury_stock", columnDefinition = "BIGINT[]")
+    private Long[] annualTreasuryStock;
+
+    /* ================= QUARTERLY ================= */
+
+    @Column(name = "quarterly_fiscal_date_ending")
+    private LocalDate[] quarterlyFiscalDateEnding;
+
+    @Column(name = "quarterly_total_assets", columnDefinition = "BIGINT[]")
+    private Long[] quarterlyTotalAssets;
+
+    @Column(name = "quarterly_total_liabilities", columnDefinition = "BIGINT[]")
+    private Long[] quarterlyTotalLiabilities;
+
+    @Column(name = "quarterly_total_shareholder_equity", columnDefinition = "BIGINT[]")
+    private Long[] quarterlyTotalShareholderEquity;
+
+    @Column(name = "quarterly_cash_and_cash_equivalents", columnDefinition = "BIGINT[]")
+    private Long[] quarterlyCashAndCashEquivalents;
+
+    @Column(name = "quarterly_short_term_investments", columnDefinition = "BIGINT[]")
+    private Long[] quarterlyShortTermInvestments;
+
+    @Column(name = "quarterly_net_receivables", columnDefinition = "BIGINT[]")
+    private Long[] quarterlyNetReceivables;
+
+    @Column(name = "quarterly_inventory", columnDefinition = "BIGINT[]")
+    private Long[] quarterlyInventory;
+
+    @Column(name = "quarterly_other_current_assets", columnDefinition = "BIGINT[]")
+    private Long[] quarterlyOtherCurrentAssets;
+
+    @Column(name = "quarterly_other_assets", columnDefinition = "BIGINT[]")
+    private Long[] quarterlyOtherAssets;
+
+    @Column(name = "quarterly_accounts_payable", columnDefinition = "BIGINT[]")
+    private Long[] quarterlyAccountsPayable;
+
+    @Column(name = "quarterly_current_debt", columnDefinition = "BIGINT[]")
+    private Long[] quarterlyCurrentDebt;
+
+    @Column(name = "quarterly_long_term_debt", columnDefinition = "BIGINT[]")
+    private Long[] quarterlyLongTermDebt;
+
+    @Column(name = "quarterly_other_current_liabilities", columnDefinition = "BIGINT[]")
+    private Long[] quarterlyOtherCurrentLiabilities;
+
+    @Column(name = "quarterly_other_liabilities", columnDefinition = "BIGINT[]")
+    private Long[] quarterlyOtherLiabilities;
+
+    @Column(name = "quarterly_retained_earnings", columnDefinition = "BIGINT[]")
+    private Long[] quarterlyRetainedEarnings;
+
+    @Column(name = "quarterly_treasury_stock", columnDefinition = "BIGINT[]")
+    private Long[] quarterlyTreasuryStock;
 }

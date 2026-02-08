@@ -14,7 +14,7 @@ public class DigitalCurrencyDailyController {
 
     private final DigitalCurrencyDailyService service;
 
-    @PostMapping("/load")
+    @GetMapping("/load")
     public ResponseEntity<String> load() {
         service.loadDigitalCurrencyDaily();
         return ResponseEntity.ok("Digital currency daily loaded for " );
