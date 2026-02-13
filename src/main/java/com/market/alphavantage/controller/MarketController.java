@@ -1,6 +1,7 @@
 package com.market.alphavantage.controller;
 
 import com.market.alphavantage.dto.CommodityDTO;
+import com.market.alphavantage.dto.ETFPriceDTO;
 import com.market.alphavantage.entity.ETFPrice;
 import com.market.alphavantage.entity.StockPrice;
 import com.market.alphavantage.service.MarketService;
@@ -13,13 +14,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/market")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class MarketController {
 
 
     private final MarketService service;
 
 
-    @GetMapping ("/load-symbols")
+    @GetMapping("/load-symbols")
     public String loadSymbols() {
         service.loadListingStatus();
         return "Symbols loaded";
@@ -33,11 +35,10 @@ public class MarketController {
     }
 
     @GetMapping("/get/{months}")
-    public ResponseEntity<List<ETFPrice>> getByMonths(@PathVariable int months) {
+    public ResponseEntity< List<ETFPriceDTO>> getByMonths(@PathVariable int months) {
 
-        List<ETFPrice> dtos;
-        dtos = service.retrieveIndexData(months); // filter by last 'months'
-        if (dtos.isEmpty()) {
+        List<ETFPriceDTO> dtos = service.retrieveIndexData(months);
+        if (dtos == null || dtos.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 

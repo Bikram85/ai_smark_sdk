@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface StockPriceRepository extends JpaRepository<StockPrice, Long> {
+public interface StockPriceRepository extends JpaRepository<StockPrice, String> {
 
 
 

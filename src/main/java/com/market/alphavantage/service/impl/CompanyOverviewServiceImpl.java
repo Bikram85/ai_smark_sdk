@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -37,15 +38,15 @@ public class CompanyOverviewServiceImpl implements CompanyOverviewService {
     @Override
     public void loadOverview() {
         List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
-        List<Symbol> etfs = symbolRepo.findByAssetType("ETF");
+       // List<Symbol> etfs = symbolRepo.findByAssetType("ETF");
 
-        int total = stocks.size() + etfs.size();
+        int total = stocks.size();
         AtomicInteger processed = new AtomicInteger(0);
         AtomicInteger success = new AtomicInteger(0);
         AtomicInteger failed = new AtomicInteger(0);
 
         stocks.forEach(symbol -> processSymbol(symbol.getSymbol(), processed, success, failed, total));
-        etfs.forEach(symbol -> processSymbol(symbol.getSymbol(), processed, success, failed, total));
+       // etfs.forEach(symbol -> processSymbol(symbol.getSymbol(), processed, success, failed, total));
 
         logInfo("\n===== SUMMARY =====");
         logInfo("Total symbols : " + total);
@@ -74,6 +75,11 @@ public class CompanyOverviewServiceImpl implements CompanyOverviewService {
 
     private void fetchDetails(String symbol) {
 
+        try {
+            TimeUnit.SECONDS.sleep(1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         String url = baseUrl + "?function=OVERVIEW&symbol=" + symbol + "&apikey=" + apiKey;
         Map<String, Object> res = restTemplate.getForObject(url, Map.class);
         if (res == null || res.isEmpty()) {

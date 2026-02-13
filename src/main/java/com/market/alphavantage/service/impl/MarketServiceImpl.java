@@ -1,5 +1,6 @@
 package com.market.alphavantage.service.impl;
 
+import com.market.alphavantage.dto.ETFPriceDTO;
 import com.market.alphavantage.entity.ETFPrice;
 import com.market.alphavantage.entity.StockPrice;
 import com.market.alphavantage.entity.Symbol;
@@ -12,8 +13,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import javax.sound.midi.Soundbank;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
@@ -88,7 +91,7 @@ public class MarketServiceImpl implements MarketService {
 
 
     @Override
-    public List<ETFPrice> retrieveIndexData(int months) {
+    public List<ETFPriceDTO> retrieveIndexData(int months) {
 
         List<ETFPrice> stockPrices = etfPriceRepository.getIndexData();
 
@@ -97,35 +100,24 @@ public class MarketServiceImpl implements MarketService {
             return new ArrayList<>();
         }
 
-        LocalDate startDate = months > 0
-                ? LocalDate.now().minusMonths(months)
-                : null;
+        LocalDate startDate = months > 0 ? LocalDate.now().minusMonths(months) : null;
 
         return stockPrices.stream()
                 .map(e -> {
+                    LocalDate[] allDates = e.getTradeDates() != null ? e.getTradeDates() : new LocalDate[0];
 
-                    LocalDate[] allDates =
-                            e.getTradeDates() != null ? e.getTradeDates() : new LocalDate[0];
-
-                    // Month filter
-                    LocalDate[] filteredDates =
-                            startDate != null
-                                    ? Arrays.stream(allDates)
-                                    .filter(d -> d != null && !d.isBefore(startDate))
-                                    .toArray(LocalDate[]::new)
-                                    : allDates;
+                    // Filter dates by months
+                    LocalDate[] filteredDates = startDate != null
+                            ? Arrays.stream(allDates)
+                            .filter(d -> d != null && !d.isBefore(startDate))
+                            .toArray(LocalDate[]::new)
+                            : allDates;
 
                     Double[] openArr = filterArrayByDates(e.getOpen(), allDates, filteredDates);
                     Double[] highArr = filterArrayByDates(e.getHigh(), allDates, filteredDates);
                     Double[] lowArr = filterArrayByDates(e.getLow(), allDates, filteredDates);
                     Double[] closeArr = filterArrayByDates(e.getClose(), allDates, filteredDates);
                     Double[] volumeArr = filterArrayByDates(e.getVolume(), allDates, filteredDates);
-
-                    openArr = openArr != null ? openArr : new Double[filteredDates.length];
-                    highArr = highArr != null ? highArr : new Double[filteredDates.length];
-                    lowArr = lowArr != null ? lowArr : new Double[filteredDates.length];
-                    closeArr = closeArr != null ? closeArr : new Double[filteredDates.length];
-                    volumeArr = volumeArr != null ? volumeArr : new Double[filteredDates.length];
 
                     List<LocalDate> dates = new ArrayList<>();
                     List<Double> open = new ArrayList<>();
@@ -135,7 +127,6 @@ public class MarketServiceImpl implements MarketService {
                     List<Double> volume = new ArrayList<>();
 
                     for (int i = 0; i < filteredDates.length; i++) {
-
                         if (filteredDates[i] != null
                                 && i < closeArr.length
                                 && closeArr[i] != null
@@ -150,18 +141,19 @@ public class MarketServiceImpl implements MarketService {
                         }
                     }
 
-                    e.setTradeDates(dates.toArray(new LocalDate[0]));
-                    e.setOpen(open.toArray(new Double[0]));
-                    e.setHigh(high.toArray(new Double[0]));
-                    e.setLow(low.toArray(new Double[0]));
-                    e.setClose(close.toArray(new Double[0]));
-                    e.setVolume(volume.toArray(new Double[0]));
-
-                    return e;
+                    return new ETFPriceDTO(
+                            e.getSymbol(),
+                            dates,
+                            open,
+                            high,low,
+                            close,
+                            volume
+                    );
                 })
-                .filter(e -> e.getTradeDates().length > 0)
+                .filter(dto -> dto.getTradeDates() != null && !dto.getTradeDates().isEmpty())
                 .toList();
     }
+
 
     private Double[] filterArrayByDates(
             Double[] data,
@@ -237,15 +229,26 @@ public class MarketServiceImpl implements MarketService {
                 + "&outputsize=full"
                 + "&apikey=" + apiKey;
 
+        try {
+            TimeUnit.SECONDS.sleep(1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         Map response = restTemplate.getForObject(url, Map.class);
         Map<String, Map<String, String>> series =
                 (Map<String, Map<String, String>>) response.get("Time Series (Daily)");
 
+        if (series == null) {
+            System.out.println("Series is null: " + symbol + " " + type);
+            return;
+        }
 
-        if (series == null) return;
+        // Convert the Map to a sorted list of entries by date (ascending)
+        List<Map.Entry<String, Map<String, String>>> sortedEntries = new ArrayList<>(series.entrySet());
+        sortedEntries.sort(Comparator.comparing(e -> LocalDate.parse(e.getKey())));
 
-
+        // Prepare lists
         List<LocalDate> dates = new ArrayList<>();
         List<Double> opens = new ArrayList<>();
         List<Double> highs = new ArrayList<>();
@@ -253,28 +256,31 @@ public class MarketServiceImpl implements MarketService {
         List<Double> closes = new ArrayList<>();
         List<Double> volumes = new ArrayList<>();
 
-        series.forEach((date, values) -> {
+        // Fill the lists in ascending order
+        for (Map.Entry<String, Map<String, String>> entry : sortedEntries) {
+            LocalDate date = LocalDate.parse(entry.getKey());
+            Map<String, String> values = entry.getValue();
 
-            dates.add(LocalDate.parse(date));
+            dates.add(date);
             opens.add(Double.valueOf(values.get("1. open")));
             highs.add(Double.valueOf(values.get("2. high")));
             lows.add(Double.valueOf(values.get("3. low")));
             closes.add(Double.valueOf(values.get("4. close")));
             volumes.add(Double.valueOf(values.get("5. volume")));
-        });
+        }
+
         if (type.contains("Stock")) {
-        StockPrice dp = new StockPrice();
-        dp.setSymbol(symbol);
-        dp.setTradeDates(dates.toArray(new LocalDate[0]));
-        dp.setOpen(opens.toArray(new Double[0]));
-        dp.setHigh(highs.toArray(new Double[0]));
-        dp.setLow(lows.toArray(new Double[0]));
-        dp.setClose(closes.toArray(new Double[0]));
-        dp.setVolume(volumes.toArray(new Double[0]));
+            StockPrice dp = new StockPrice();
+            dp.setSymbol(symbol);
+            dp.setTradeDates(dates.toArray(new LocalDate[0]));
+            dp.setOpen(opens.toArray(new Double[0]));
+            dp.setHigh(highs.toArray(new Double[0]));
+            dp.setLow(lows.toArray(new Double[0]));
+            dp.setClose(closes.toArray(new Double[0]));
+            dp.setVolume(volumes.toArray(new Double[0]));
 
             stockPriceRepository.save(dp);
-        }
-        else {
+        } else {
             ETFPrice dp = new ETFPrice();
             dp.setSymbol(symbol);
             dp.setTradeDates(dates.toArray(new LocalDate[0]));
@@ -283,9 +289,11 @@ public class MarketServiceImpl implements MarketService {
             dp.setLow(lows.toArray(new Double[0]));
             dp.setClose(closes.toArray(new Double[0]));
             dp.setVolume(volumes.toArray(new Double[0]));
+
             etfPriceRepository.save(dp);
         }
     }
+
 
 
 

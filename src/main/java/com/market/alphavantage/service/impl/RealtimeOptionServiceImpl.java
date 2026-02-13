@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -74,6 +75,11 @@ public class RealtimeOptionServiceImpl implements RealtimeOptionService {
     }
 
     private void fetchDetails(String symbol) {
+        try {
+            TimeUnit.SECONDS.sleep(1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         String url = baseUrl
                 + "?function=REALTIME_OPTIONS"

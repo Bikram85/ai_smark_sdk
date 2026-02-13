@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @RequiredArgsConstructor
@@ -32,6 +33,11 @@ public class BalanceSheetProcessor {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processSymbol(String symbol) {
+        try {
+            TimeUnit.SECONDS.sleep(1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         try {
             String url = String.format("%s?function=BALANCE_SHEET&symbol=%s&apikey=%s", baseUrl, symbol, apiKey);
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);

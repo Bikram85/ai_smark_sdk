@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -70,7 +71,11 @@ public class SharesOutstandingServiceImpl implements SharesOutstandingService {
     }
 
     private void fetchDetails(String symbol) {
-
+        try {
+            TimeUnit.SECONDS.sleep(1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         String url = baseUrl
                 + "?function=SHARES_OUTSTANDING"
                 + "&symbol=" + symbol.toUpperCase()

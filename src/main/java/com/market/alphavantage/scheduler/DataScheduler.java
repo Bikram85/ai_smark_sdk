@@ -38,10 +38,10 @@ public class DataScheduler {
     private final SharesOutstandingService sharesOutstandingService;
     private final TopGainersLosersService topGainersLosersService;
 
-    @Scheduled(cron = "0 30 09 * * WED")
+    @Scheduled(cron = "0 20 13 * * FRI")
     public void initDataSet() throws ParseException, IOException {
-        marketService.loadListingStatus();
-        marketService.loadDailyPrices();
+       // marketService.loadListingStatus();
+       // marketService.loadDailyPrices();
         companyOverviewService.loadOverview();
         balanceSheetService.loadBalanceSheet();
         cashFlowService.loadCashFlow();

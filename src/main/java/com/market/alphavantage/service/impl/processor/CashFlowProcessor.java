@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -34,7 +35,11 @@ public class CashFlowProcessor {
     /* ================= PROCESS SYMBOL ================= */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processSymbol(String symbol) {
-
+        try {
+            TimeUnit.SECONDS.sleep(1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         String url = String.format("%s?function=CASH_FLOW&symbol=%s&apikey=%s", baseUrl, symbol, apiKey);
         Map<String, Object> response;
 

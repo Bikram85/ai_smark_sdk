@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -92,6 +93,12 @@ public class EquityTechnicalIndicatorServiceImpl implements EquityTechnicalIndic
                                 String interval,
                                 Integer timePeriod,
                                 String seriesType) {
+
+        try {
+            TimeUnit.SECONDS.sleep(1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         StringBuilder url = new StringBuilder(baseUrl)
                 .append("?function=").append(function)
