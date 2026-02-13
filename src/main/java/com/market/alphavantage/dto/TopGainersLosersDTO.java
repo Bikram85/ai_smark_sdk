@@ -10,14 +10,16 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TopGainersLosersDTO {
-
     private String id;
+    private List<String> symbols;
+    private List<String> names;
+    private List<Double> prices;
+    private List<Double> changes;
+    private List<Double> percentChanges;
+    private List<Long> volumes;
 
-    private List<String> symbol;
-    private List<String> name;
-    private List<Double> price;
-    private List<Double> change;
-    private List<Double> percentChange;
-    private List<Long> volume;
+    // constructor, getters, setters
 }
+
+
 

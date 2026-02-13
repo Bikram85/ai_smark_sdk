@@ -14,8 +14,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -139,6 +142,87 @@ public class FxDailyServiceImpl implements FxDailyService {
         logInfo("FX data retrieved for " + fromSymbol + " -> " + toSymbol);
         return dto;
     }
+
+    @Override
+    public List<FxDailyDTO> getFxDailyByMonths(int months) {
+        LocalDate startDate = months > 0 ? LocalDate.now().minusMonths(months) : null;
+
+        return repository.findAll().stream()
+                .map(fx -> {
+                    // Filter dates by startDate if months > 0
+                    LocalDate[] filteredDates = fx.getTradeDate() != null
+                            ? (startDate != null
+                            ? Arrays.stream(fx.getTradeDate())
+                            .filter(d -> !d.isBefore(startDate))
+                            .toArray(LocalDate[]::new)
+                            : fx.getTradeDate())
+                            : new LocalDate[0];
+
+                    // Safely filter arrays based on filteredDates
+                    Double[] openArray = filterArrayByDates(fx.getOpen(), fx.getTradeDate(), filteredDates);
+                    Double[] highArray = filterArrayByDates(fx.getHigh(), fx.getTradeDate(), filteredDates);
+                    Double[] lowArray = filterArrayByDates(fx.getLow(), fx.getTradeDate(), filteredDates);
+                    Double[] closeArray = filterArrayByDates(fx.getClose(), fx.getTradeDate(), filteredDates);
+
+                    openArray = openArray != null ? openArray : new Double[filteredDates.length];
+                    highArray = highArray != null ? highArray : new Double[filteredDates.length];
+                    lowArray = lowArray != null ? lowArray : new Double[filteredDates.length];
+                    closeArray = closeArray != null ? closeArray : new Double[filteredDates.length];
+
+                    // Collect only rows where close != 0
+                    List<LocalDate> finalDates = new ArrayList<>();
+                    List<Double> finalOpen = new ArrayList<>();
+                    List<Double> finalHigh = new ArrayList<>();
+                    List<Double> finalLow = new ArrayList<>();
+                    List<Double> finalClose = new ArrayList<>();
+
+                    for (int i = 0; i < filteredDates.length; i++) {
+                        if (filteredDates[i] != null &&
+                                closeArray.length > i &&
+                                closeArray[i] != null &&
+                                closeArray[i] != 0) {
+                            finalDates.add(filteredDates[i]);
+                            finalOpen.add(i < openArray.length ? openArray[i] : null);
+                            finalHigh.add(i < highArray.length ? highArray[i] : null);
+                            finalLow.add(i < lowArray.length ? lowArray[i] : null);
+                            finalClose.add(closeArray[i]);
+                        }
+                    }
+
+                    FxDailyDTO dto = new FxDailyDTO();
+                    dto.setId(fx.getId());
+                    dto.setFromSymbol(fx.getFromSymbol());
+                    dto.setToSymbol(fx.getToSymbol());
+                    dto.setTradeDate(finalDates);
+                    dto.setOpen(finalOpen);
+                    dto.setHigh(finalHigh);
+                    dto.setLow(finalLow);
+                    dto.setClose(finalClose);
+
+                    return dto;
+                })
+                .filter(dto -> !dto.getTradeDate().isEmpty()) // remove empty DTOs
+                .collect(Collectors.toList());
+    }
+
+    // Helper methods
+    private Double[] filterArrayByDates(Double[] data, LocalDate[] allDates, LocalDate[] filteredDates) {
+        if (data == null || allDates == null || filteredDates == null) return new Double[0];
+        return IntStream.range(0, allDates.length)
+                .filter(i -> Arrays.asList(filteredDates).contains(allDates[i]))
+                .mapToDouble(i -> data[i])
+                .boxed()
+                .toArray(Double[]::new);
+    }
+
+    private Long[] filterArrayByDatesLong(Long[] data, LocalDate[] allDates, LocalDate[] filteredDates) {
+        if (data == null || allDates == null || filteredDates == null) return new Long[0];
+        return IntStream.range(0, allDates.length)
+                .filter(i -> Arrays.asList(filteredDates).contains(allDates[i]))
+                .mapToObj(i -> data[i])
+                .toArray(Long[]::new);
+    }
+
 
 
     /* ===== Logger helper ===== */

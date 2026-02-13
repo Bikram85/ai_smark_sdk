@@ -35,7 +35,7 @@ public class IpoCalendarServiceImpl implements IpoCalendarService {
 
     @Override
     public void loadIpoCalendar() {
-        String url = baseUrl + "?function=IPO_CALENDAR&apikey=" + apiKey;
+        String url = baseUrl + "?function=IPO_CALENDAR&apikey=" + "demo";
         String csv = restTemplate.getForObject(url, String.class);
 
         if (csv == null || csv.isEmpty()) {

@@ -14,8 +14,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -144,6 +147,86 @@ public class GoldSilverHistoryServiceImpl implements GoldSilverHistoryService {
 
 
     @Override
+    public List<GoldSilverHistoryDTO> getHistoryByMonths(int month) {
+        List<GoldSilverHistory> histories = repository.findAll();
+
+        if (histories == null || histories.isEmpty()) {
+            logInfo("No gold/silver history found");
+            return new ArrayList<>();
+        }
+
+        // If month > 0, calculate startDate; else null means include all dates
+        LocalDate startDate = month > 0 ? LocalDate.now().minusMonths(month) : null;
+
+        return histories.stream()
+                .map(e -> {
+                    // Filter dates based on startDate if month > 0
+                    LocalDate[] filteredDates = e.getTradeDate() != null
+                            ? (startDate != null
+                            ? Arrays.stream(e.getTradeDate())
+                            .filter(d -> !d.isBefore(startDate))
+                            .toArray(LocalDate[]::new)
+                            : e.getTradeDate())
+                            : new LocalDate[0];
+
+                    // Safely filter arrays based on filteredDates
+                    Double[] openArray = filterArrayByDates(e.getOpen(), e.getTradeDate(), filteredDates);
+                    Double[] highArray = filterArrayByDates(e.getHigh(), e.getTradeDate(), filteredDates);
+                    Double[] lowArray = filterArrayByDates(e.getLow(), e.getTradeDate(), filteredDates);
+                    Double[] closeArray = filterArrayByDates(e.getClose(), e.getTradeDate(), filteredDates);
+                    Long[] volumeArray = filterArrayByDatesLong(e.getVolume(), e.getTradeDate(), filteredDates);
+
+                    // Default arrays to filteredDates length if null
+                    openArray = openArray != null ? openArray : new Double[filteredDates.length];
+                    highArray = highArray != null ? highArray : new Double[filteredDates.length];
+                    lowArray = lowArray != null ? lowArray : new Double[filteredDates.length];
+                    closeArray = closeArray != null ? closeArray : new Double[filteredDates.length];
+                    volumeArray = volumeArray != null ? volumeArray : new Long[filteredDates.length];
+
+                    // Collect only rows where close != 0
+                    List<LocalDate> finalDates = new ArrayList<>();
+                    List<Double> finalOpen = new ArrayList<>();
+                    List<Double> finalHigh = new ArrayList<>();
+                    List<Double> finalLow = new ArrayList<>();
+                    List<Double> finalClose = new ArrayList<>();
+                    List<Long> finalVolume = new ArrayList<>();
+
+                    for (int i = 0; i < filteredDates.length; i++) {
+                        if (filteredDates[i] != null &&
+                                closeArray.length > i &&
+                                closeArray[i] != null &&
+                                closeArray[i] != 0) {
+
+                            finalDates.add(filteredDates[i]);
+                            finalOpen.add(i < openArray.length ? openArray[i] : null);
+                            finalHigh.add(i < highArray.length ? highArray[i] : null);
+                            finalLow.add(i < lowArray.length ? lowArray[i] : null);
+                            finalClose.add(closeArray[i]);
+                            finalVolume.add(i < volumeArray.length ? volumeArray[i] : null);
+                        }
+                    }
+
+                    // Create DTO
+                    GoldSilverHistoryDTO dto = new GoldSilverHistoryDTO();
+                    dto.setId(e.getId());
+                    dto.setSymbol(e.getSymbol());
+                    dto.setInterval(e.getInterval());
+                    dto.setTradeDate(finalDates);
+                    dto.setOpen(finalOpen);
+                    dto.setHigh(finalHigh);
+                    dto.setLow(finalLow);
+                    dto.setClose(finalClose);
+                    dto.setVolume(finalVolume);
+
+                    return dto;
+                })
+                .filter(dto -> !dto.getTradeDate().isEmpty()) // remove DTOs with no valid data
+                .collect(Collectors.toList());
+    }
+
+
+
+    @Override
     public GoldSilverHistoryDTO getHistory(String symbol, String interval) {
         String id = symbol.toUpperCase() + "_" + interval.toLowerCase();
         GoldSilverHistory e = repository.findById(id).orElse(null);
@@ -170,6 +253,23 @@ public class GoldSilverHistoryServiceImpl implements GoldSilverHistoryService {
     }
 
 
+    // Helper methods
+    private Double[] filterArrayByDates(Double[] data, LocalDate[] allDates, LocalDate[] filteredDates) {
+        if (data == null || allDates == null || filteredDates == null) return new Double[0];
+        return IntStream.range(0, allDates.length)
+                .filter(i -> Arrays.asList(filteredDates).contains(allDates[i]))
+                .mapToDouble(i -> data[i])
+                .boxed()
+                .toArray(Double[]::new);
+    }
+
+    private Long[] filterArrayByDatesLong(Long[] data, LocalDate[] allDates, LocalDate[] filteredDates) {
+        if (data == null || allDates == null || filteredDates == null) return new Long[0];
+        return IntStream.range(0, allDates.length)
+                .filter(i -> Arrays.asList(filteredDates).contains(allDates[i]))
+                .mapToObj(i -> data[i])
+                .toArray(Long[]::new);
+    }
 
 
     private Long parseLong(String val) {

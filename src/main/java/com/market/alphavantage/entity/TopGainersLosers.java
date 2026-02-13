@@ -1,36 +1,31 @@
 package com.market.alphavantage.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.Data;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "top_gainers_losers")
-@Data
+@Getter
+@Setter
 public class TopGainersLosers {
 
     @Id
-    private String id; // e.g. "top_gainers" or "top_losers"
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long rowId; // unique row per symbol
 
-    private String type;
+    private String id; // "gainer" or "loser" — used to categorize
 
-    @Column(columnDefinition = "TEXT")
-    private String[] symbol;
+    @Column(nullable = false, unique = true)
+    private String symbol; // unique symbol per row
 
-    @Column(columnDefinition = "TEXT")
-    private String[] name;
+    private String name;
 
-    @Column(columnDefinition = "TEXT")
-    private Double[] price;
+    private Double price;
 
-    @Column(columnDefinition = "TEXT")
-    private Double[] change;
+    private Double change;
 
-    @Column(columnDefinition = "TEXT")
-    private Double[] percentChange;
+    private Double percentChange;
 
-    @Column(columnDefinition = "TEXT")
-    private Long[] volume;
+    private Long volume;
 }

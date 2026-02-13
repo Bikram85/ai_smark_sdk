@@ -25,6 +25,6 @@ public class ETFPrice {
 
     private Double[] close;
 
-    private Long[] volume;
+    private Double[] volume;
 }
 

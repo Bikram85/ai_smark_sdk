@@ -21,7 +21,7 @@ public class EarningsCalendarController {
         return ResponseEntity.ok("Earnings calendar loaded for horizon=" );
     }
 
-    @GetMapping("/Data")
+    @GetMapping("/data")
     public ResponseEntity<EarningsCalendarDTO> get() {
         EarningsCalendarDTO dto = service.getEarningsCalendar();
         if (dto == null) return ResponseEntity.notFound().build();

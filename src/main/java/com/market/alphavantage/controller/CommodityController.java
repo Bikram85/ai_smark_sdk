@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/commodities")
 @RequiredArgsConstructor
@@ -20,11 +22,19 @@ public class CommodityController {
         return ResponseEntity.ok("Commodity data loaded for ");
     }
 
-    @GetMapping("/get")
-    public ResponseEntity<CommodityDTO> get(@RequestParam String function,
-                                            @RequestParam String interval) {
-        CommodityDTO dto = service.getCommodity(function, interval);
-        if (dto == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(dto);
-    }
+        @GetMapping("/get/{months}")
+        public ResponseEntity<List<CommodityDTO>> getByMonths(@PathVariable int months) {
+
+            List<CommodityDTO> dtos;
+
+
+            dtos = service.getCommodityByMonths(months); // filter by last 'months'
+
+
+            if (dtos.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            return ResponseEntity.ok(dtos);
+        }
 }

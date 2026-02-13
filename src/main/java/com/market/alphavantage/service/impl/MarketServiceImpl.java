@@ -13,11 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -87,6 +85,119 @@ public class MarketServiceImpl implements MarketService {
         System.out.println("Success       : " + success.get());
         System.out.println("Failed        : " + failed.get());
     }
+
+
+    @Override
+    public List<ETFPrice> retrieveIndexData(int months) {
+
+        List<ETFPrice> stockPrices = etfPriceRepository.getIndexData();
+
+        if (stockPrices == null || stockPrices.isEmpty()) {
+            System.out.println("No index data found");
+            return new ArrayList<>();
+        }
+
+        LocalDate startDate = months > 0
+                ? LocalDate.now().minusMonths(months)
+                : null;
+
+        return stockPrices.stream()
+                .map(e -> {
+
+                    LocalDate[] allDates =
+                            e.getTradeDates() != null ? e.getTradeDates() : new LocalDate[0];
+
+                    // Month filter
+                    LocalDate[] filteredDates =
+                            startDate != null
+                                    ? Arrays.stream(allDates)
+                                    .filter(d -> d != null && !d.isBefore(startDate))
+                                    .toArray(LocalDate[]::new)
+                                    : allDates;
+
+                    Double[] openArr = filterArrayByDates(e.getOpen(), allDates, filteredDates);
+                    Double[] highArr = filterArrayByDates(e.getHigh(), allDates, filteredDates);
+                    Double[] lowArr = filterArrayByDates(e.getLow(), allDates, filteredDates);
+                    Double[] closeArr = filterArrayByDates(e.getClose(), allDates, filteredDates);
+                    Double[] volumeArr = filterArrayByDates(e.getVolume(), allDates, filteredDates);
+
+                    openArr = openArr != null ? openArr : new Double[filteredDates.length];
+                    highArr = highArr != null ? highArr : new Double[filteredDates.length];
+                    lowArr = lowArr != null ? lowArr : new Double[filteredDates.length];
+                    closeArr = closeArr != null ? closeArr : new Double[filteredDates.length];
+                    volumeArr = volumeArr != null ? volumeArr : new Double[filteredDates.length];
+
+                    List<LocalDate> dates = new ArrayList<>();
+                    List<Double> open = new ArrayList<>();
+                    List<Double> high = new ArrayList<>();
+                    List<Double> low = new ArrayList<>();
+                    List<Double> close = new ArrayList<>();
+                    List<Double> volume = new ArrayList<>();
+
+                    for (int i = 0; i < filteredDates.length; i++) {
+
+                        if (filteredDates[i] != null
+                                && i < closeArr.length
+                                && closeArr[i] != null
+                                && closeArr[i] != 0) {
+
+                            dates.add(filteredDates[i]);
+                            open.add(i < openArr.length ? openArr[i] : null);
+                            high.add(i < highArr.length ? highArr[i] : null);
+                            low.add(i < lowArr.length ? lowArr[i] : null);
+                            close.add(closeArr[i]);
+                            volume.add(i < volumeArr.length ? volumeArr[i] : null);
+                        }
+                    }
+
+                    e.setTradeDates(dates.toArray(new LocalDate[0]));
+                    e.setOpen(open.toArray(new Double[0]));
+                    e.setHigh(high.toArray(new Double[0]));
+                    e.setLow(low.toArray(new Double[0]));
+                    e.setClose(close.toArray(new Double[0]));
+                    e.setVolume(volume.toArray(new Double[0]));
+
+                    return e;
+                })
+                .filter(e -> e.getTradeDates().length > 0)
+                .toList();
+    }
+
+    private Double[] filterArrayByDates(
+            Double[] data,
+            LocalDate[] allDates,
+            LocalDate[] filteredDates) {
+
+        if (data == null || allDates == null || filteredDates == null)
+            return new Double[0];
+
+        Set<LocalDate> dateSet = new HashSet<>(Arrays.asList(filteredDates));
+
+        return IntStream.range(0, allDates.length)
+                .filter(i -> dateSet.contains(allDates[i]) && i < data.length)
+                .mapToObj(i -> data[i])
+                .toArray(Double[]::new);
+    }
+
+
+    private Long[] filterArrayByDatesLong(
+            Long[] data,
+            LocalDate[] allDates,
+            LocalDate[] filteredDates) {
+
+        if (data == null || allDates == null || filteredDates == null)
+            return new Long[0];
+
+        Set<LocalDate> dateSet = new HashSet<>(Arrays.asList(filteredDates));
+
+        return IntStream.range(0, allDates.length)
+                .filter(i -> dateSet.contains(allDates[i]) && i < data.length)
+                .mapToObj(i -> data[i])
+                .toArray(Long[]::new);
+    }
+
+
+
 
     private void processSymbol(String symbol,
                                String type,
@@ -171,7 +282,7 @@ public class MarketServiceImpl implements MarketService {
             dp.setHigh(highs.toArray(new Double[0]));
             dp.setLow(lows.toArray(new Double[0]));
             dp.setClose(closes.toArray(new Double[0]));
-            dp.setVolume(volumes.toArray(new Long[0]));
+            dp.setVolume(volumes.toArray(new Double[0]));
             etfPriceRepository.save(dp);
         }
     }

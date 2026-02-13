@@ -38,7 +38,7 @@ public class EarningsCalendarServiceImpl implements EarningsCalendarService {
         String url = baseUrl
                 + "?function=EARNINGS_CALENDAR"
                 + "&horizon=" + horizon
-                + "&apikey=" + apiKey;
+                + "&apikey=" + "demo";
 
         logInfo("Fetching earnings calendar for horizon: " + horizon);
 

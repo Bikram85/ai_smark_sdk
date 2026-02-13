@@ -14,6 +14,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -102,32 +104,160 @@ public class CommodityServiceImpl implements CommodityService {
     }
 
     @Override
-    public CommodityDTO getCommodity(String function, String interval) {
-        String id = function.toUpperCase() + "_" + interval.toLowerCase();
-        Commodity e = repository.findById(id).orElse(null);
-        if (e == null) {
-            logInfo("No commodity data found for " + function + " -> " + interval);
-            return null;
+    public List<CommodityDTO> getCommodity() {
+        List<Commodity> commodities = repository.findAll();
+
+        if (commodities == null || commodities.isEmpty()) {
+            logInfo("No commodity data found");
+            return new ArrayList<>();
         }
 
-        // Convert arrays to lists for DTO
-        List<LocalDate> tradeDate = e.getTradeDate() != null ? List.of(e.getTradeDate()) : List.of();
-        List<Double> close = e.getClose() != null ? List.of(e.getClose()) : List.of();
+        return commodities.stream()
+                .map(e -> {
+                    LocalDate[] datesArray = e.getTradeDate() != null ? e.getTradeDate() : new LocalDate[0];
+                    Double[] openArray = e.getOpen() != null ? e.getOpen() : new Double[datesArray.length];
+                    Double[] highArray = e.getHigh() != null ? e.getHigh() : new Double[datesArray.length];
+                    Double[] lowArray = e.getLow() != null ? e.getLow() : new Double[datesArray.length];
+                    Double[] closeArray = e.getClose() != null ? e.getClose() : new Double[datesArray.length];
+                    Long[] volumeArray = e.getVolume() != null ? e.getVolume() : new Long[datesArray.length];
 
-        logInfo("Retrieved commodity data for " + function + " -> " + interval);
+                    List<LocalDate> tradeDate = new ArrayList<>();
+                    List<Double> open = new ArrayList<>();
+                    List<Double> high = new ArrayList<>();
+                    List<Double> low = new ArrayList<>();
+                    List<Double> close = new ArrayList<>();
+                    List<Long> volume = new ArrayList<>();
 
-        return new CommodityDTO(
-                e.getId(),
-                e.getFunction(),
-                e.getInterval(),
-                tradeDate,
-                null, // open
-                null, // high
-                null, // low
-                close,
-                null  // volume
-        );
+                    // Loop over datesArray and include only rows with non-zero close
+                    for (int i = 0; i < datesArray.length; i++) {
+                        if (datesArray[i] != null &&
+                                closeArray[i] != null &&
+                                closeArray[i] != 0
+                        ) {
+                            tradeDate.add(datesArray[i]);
+                            open.add(i < openArray.length ? openArray[i] : null);
+                            high.add(i < highArray.length ? highArray[i] : null);
+                            low.add(i < lowArray.length ? lowArray[i] : null);
+                            close.add(closeArray[i]);
+                            volume.add(i < volumeArray.length ? volumeArray[i] : null);
+                        }
+                    }
+
+                    logInfo("Retrieved commodity data for " + e.getFunction() + " -> " + e.getInterval());
+
+                    return new CommodityDTO(
+                            e.getId(),
+                            e.getFunction(),
+                            e.getInterval(),
+                            tradeDate,
+                            open,
+                            high,
+                            low,
+                            close,
+                            volume
+                    );
+                })
+                .filter(dto -> !dto.getTradeDate().isEmpty()) // remove DTOs with no valid data
+                .collect(Collectors.toList());
     }
+
+
+
+
+
+    @Override
+    public List<CommodityDTO> getCommodityByMonths(int months) {
+
+        // Only calculate startDate if months > 0
+        LocalDate startDate = months > 0 ? LocalDate.now().minusMonths(months) : null;
+
+        return repository.findAll().stream()
+                .map(e -> {
+                    // Filter dates by startDate if applicable
+                    LocalDate[] filteredDates = e.getTradeDate() != null
+                            ? (startDate != null
+                            ? Arrays.stream(e.getTradeDate())
+                            .filter(d -> !d.isBefore(startDate))
+                            .toArray(LocalDate[]::new)
+                            : e.getTradeDate()) // include all dates if startDate is null
+                            : new LocalDate[0];
+
+                    // Safely filter arrays based on filteredDates
+                    Double[] openArray = filterArrayByDates(e.getOpen(), e.getTradeDate(), filteredDates);
+                    Double[] highArray = filterArrayByDates(e.getHigh(), e.getTradeDate(), filteredDates);
+                    Double[] lowArray = filterArrayByDates(e.getLow(), e.getTradeDate(), filteredDates);
+                    Double[] closeArray = filterArrayByDates(e.getClose(), e.getTradeDate(), filteredDates);
+                    Long[] volumeArray = filterArrayByDatesLong(e.getVolume(), e.getTradeDate(), filteredDates);
+
+                    // Default arrays to filteredDates length if null
+                    openArray = openArray != null ? openArray : new Double[filteredDates.length];
+                    highArray = highArray != null ? highArray : new Double[filteredDates.length];
+                    lowArray = lowArray != null ? lowArray : new Double[filteredDates.length];
+                    closeArray = closeArray != null ? closeArray : new Double[filteredDates.length];
+                    volumeArray = volumeArray != null ? volumeArray : new Long[filteredDates.length];
+
+                    // Collect only rows where close != 0
+                    List<LocalDate> finalDates = new ArrayList<>();
+                    List<Double> finalOpen = new ArrayList<>();
+                    List<Double> finalHigh = new ArrayList<>();
+                    List<Double> finalLow = new ArrayList<>();
+                    List<Double> finalClose = new ArrayList<>();
+                    List<Long> finalVolume = new ArrayList<>();
+
+                    for (int i = 0; i < filteredDates.length; i++) {
+                        if (filteredDates[i] != null &&
+                                closeArray.length > i &&
+                                closeArray[i] != null &&
+                                closeArray[i] != 0) {
+
+                            finalDates.add(filteredDates[i]);
+                            finalOpen.add(i < openArray.length ? openArray[i] : null);
+                            finalHigh.add(i < highArray.length ? highArray[i] : null);
+                            finalLow.add(i < lowArray.length ? lowArray[i] : null);
+                            finalClose.add(closeArray[i]);
+                            finalVolume.add(i < volumeArray.length ? volumeArray[i] : null);
+                        }
+                    }
+
+                    return new CommodityDTO(
+                            e.getId(),
+                            e.getFunction(),
+                            e.getInterval(),
+                            finalDates,
+                            finalOpen,
+                            finalHigh,
+                            finalLow,
+                            finalClose,
+                            finalVolume
+                    );
+                })
+                .filter(dto -> !dto.getTradeDate().isEmpty()) // remove empty DTOs
+                .collect(Collectors.toList());
+    }
+
+
+
+
+
+
+    // Helper methods
+    private Double[] filterArrayByDates(Double[] data, LocalDate[] allDates, LocalDate[] filteredDates) {
+        if (data == null || allDates == null || filteredDates == null) return new Double[0];
+        return IntStream.range(0, allDates.length)
+                .filter(i -> Arrays.asList(filteredDates).contains(allDates[i]))
+                .mapToDouble(i -> data[i])
+                .boxed()
+                .toArray(Double[]::new);
+    }
+
+    private Long[] filterArrayByDatesLong(Long[] data, LocalDate[] allDates, LocalDate[] filteredDates) {
+        if (data == null || allDates == null || filteredDates == null) return new Long[0];
+        return IntStream.range(0, allDates.length)
+                .filter(i -> Arrays.asList(filteredDates).contains(allDates[i]))
+                .mapToObj(i -> data[i])
+                .toArray(Long[]::new);
+    }
+
 
     /* ===== Helper Methods ===== */
     private LocalDate parseDate(String val) {

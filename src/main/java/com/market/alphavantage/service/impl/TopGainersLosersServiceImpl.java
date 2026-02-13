@@ -14,7 +14,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -44,50 +43,69 @@ public class TopGainersLosersServiceImpl implements TopGainersLosersService {
             return;
         }
 
-        saveList("top_gainers", (List<Map<String, String>>) response.get("topGainers"), "topGainers");
-        saveList("top_losers", (List<Map<String, String>>) response.get("topLosers"), "topLosers");
+        saveList("gainer",
+                (List<Map<String, String>>) response.get("top_gainers"),
+                "top_gainers");
+
+        saveList("loser",
+                (List<Map<String, String>>) response.get("top_losers"),
+                "top_losers");
 
         logInfo("Completed loadTopGainersLosers.");
     }
 
-    private void saveList(String id, List<Map<String, String>> list, String type) {
+    /**
+     * Save each symbol as a separate row
+     */
+    private void saveList(String id,
+                          List<Map<String, String>> list,
+                          String type) {
+
         if (list == null || list.isEmpty()) {
             logInfo("No data to save for " + type);
             return;
         }
 
-        TopGainersLosers entity = new TopGainersLosers();
-        entity.setId(id);
-        entity.setType(type);
+        // Optionally: delete existing rows for this id before inserting fresh
+        repository.deleteAll(repository.findById(id));
 
-        // Convert lists to arrays directly
-        entity.setSymbol(list.stream().map(r -> r.get("symbol")).toArray(String[]::new));
-        entity.setName(list.stream().map(r -> r.get("name")).toArray(String[]::new));
-        entity.setPrice(list.stream().map(r -> parseDouble(r.get("price"))).toArray(Double[]::new));
-        entity.setChange(list.stream().map(r -> parseDouble(r.get("change"))).toArray(Double[]::new));
-        entity.setPercentChange(list.stream().map(r -> parseDouble(r.get("percentChange"))).toArray(Double[]::new));
-        entity.setVolume(list.stream().map(r -> parseLong(r.get("volume"))).toArray(Long[]::new));
+        for (Map<String, String> item : list) {
+            TopGainersLosers entity = new TopGainersLosers();
+            entity.setId(id); // "gainer" or "loser"
+            entity.setSymbol(item.get("ticker"));
+            entity.setName(item.getOrDefault("name", ""));
+            entity.setPrice(parseDouble(item.get("price")));
+            entity.setChange(parseDouble(item.get("change_amount")));
+            entity.setPercentChange(parsePercent(item.get("change_percentage")));
+            entity.setVolume(parseLong(item.get("volume")));
 
-        repository.save(entity);
+            repository.save(entity);
+        }
 
-        logInfo("Saved " + type + " with id: " + id + ", total entries: " + list.size());
+        logInfo("Saved " + type + " with id: " + id + ", entries: " + list.size());
+    }
+
+    private Double parsePercent(String val) {
+        if (val == null) return null;
+        return Double.parseDouble(val.replace("%", ""));
     }
 
     @Override
     public TopGainersLosersDTO getTopGainersLosers(String id) {
-        return repository.findById(id)
-                .map(e -> new TopGainersLosersDTO(
-                        e.getId(),
-                        e.getSymbol() != null ? List.of(e.getSymbol()) : List.of(),
-                        e.getName() != null ? List.of(e.getName()) : List.of(),
-                        e.getPrice() != null ? List.of(e.getPrice()) : List.of(),
-                        e.getChange() != null ? List.of(e.getChange()) : List.of(),
-                        e.getPercentChange() != null ? List.of(e.getPercentChange()) : List.of(),
-                        e.getVolume() != null ? List.of(e.getVolume()) : List.of()
-                ))
-                .orElse(null);
-    }
+        List<TopGainersLosers> entities = repository.findById(id);
 
+        if (entities.isEmpty()) return null;
+
+        return new TopGainersLosersDTO(
+                id,
+                entities.stream().map(TopGainersLosers::getSymbol).toList(),
+                entities.stream().map(TopGainersLosers::getName).toList(),
+                entities.stream().map(TopGainersLosers::getPrice).toList(),
+                entities.stream().map(TopGainersLosers::getChange).toList(),
+                entities.stream().map(TopGainersLosers::getPercentChange).toList(),
+                entities.stream().map(TopGainersLosers::getVolume).toList()
+        );
+    }
 
     /* ===== Helpers ===== */
 

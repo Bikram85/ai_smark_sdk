@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/digital-currency-daily")
 @RequiredArgsConstructor
@@ -20,11 +22,23 @@ public class DigitalCurrencyDailyController {
         return ResponseEntity.ok("Digital currency daily loaded for " );
     }
 
-    @GetMapping("/get")
-    public ResponseEntity<DigitalCurrencyDailyDTO> get(@RequestParam String symbol,
-                                                       @RequestParam String market) {
-        DigitalCurrencyDailyDTO dto = service.getDigitalCurrencyDaily(symbol, market);
-        if (dto == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(dto);
+    @GetMapping("/get/{months}")
+    public ResponseEntity<List<DigitalCurrencyDailyDTO>> getByMonths(
+           @PathVariable int months) {
+
+        List<DigitalCurrencyDailyDTO> dtos;
+
+        if (months > 0) {
+            dtos = service.getDigitalCurrencyByMonths(months);
+        } else {
+            dtos = service.getAllDigitalCurrencyDaily();
+        }
+
+        if (dtos.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(dtos);
     }
 }
+

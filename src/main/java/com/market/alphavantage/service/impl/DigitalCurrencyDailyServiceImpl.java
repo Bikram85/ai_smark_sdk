@@ -14,6 +14,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -128,27 +130,112 @@ public class DigitalCurrencyDailyServiceImpl implements DigitalCurrencyDailyServ
     }
 
     @Override
-    public DigitalCurrencyDailyDTO getDigitalCurrencyDaily(String symbol, String market) {
-        String id = symbol.toUpperCase() + "_" + market.toUpperCase();
-        DigitalCurrencyDaily e = repository.findById(id).orElse(null);
-        if (e == null) {
-            logInfo("No digital currency daily data found for " + symbol + " -> " + market);
-            return null;
+    public List<DigitalCurrencyDailyDTO> getAllDigitalCurrencyDaily() {
+        List<DigitalCurrencyDaily> entities = repository.findAll();
+
+        if (entities.isEmpty()) {
+            logInfo("No digital currency daily data found");
+            return new ArrayList<>();
         }
 
-        return new DigitalCurrencyDailyDTO(
-                e.getId(),
-                e.getSymbol(),
-                e.getMarket(),
-                e.getTradeDate() != null ? List.of(e.getTradeDate()) : new ArrayList<>(),
-                e.getOpen() != null ? List.of(e.getOpen()) : new ArrayList<>(),
-                e.getHigh() != null ? List.of(e.getHigh()) : new ArrayList<>(),
-                e.getLow() != null ? List.of(e.getLow()) : new ArrayList<>(),
-                e.getClose() != null ? List.of(e.getClose()) : new ArrayList<>(),
-                e.getVolume() != null ? List.of(e.getVolume()) : new ArrayList<>(),
-                e.getMarketCap() != null ? List.of(e.getMarketCap()) : new ArrayList<>()
-        );
+        return entities.stream()
+                .map(e -> new DigitalCurrencyDailyDTO(
+                        e.getId(),
+                        e.getSymbol(),
+                        e.getMarket(),
+                        e.getTradeDate() != null ? List.of(e.getTradeDate()) : new ArrayList<>(),
+                        e.getOpen() != null ? List.of(e.getOpen()) : new ArrayList<>(),
+                        e.getHigh() != null ? List.of(e.getHigh()) : new ArrayList<>(),
+                        e.getLow() != null ? List.of(e.getLow()) : new ArrayList<>(),
+                        e.getClose() != null ? List.of(e.getClose()) : new ArrayList<>(),
+                        e.getVolume() != null ? List.of(e.getVolume()) : new ArrayList<>(),
+                        e.getMarketCap() != null ? List.of(e.getMarketCap()) : new ArrayList<>()
+                ))
+                .collect(Collectors.toList());
     }
+
+    @Override
+    public List<DigitalCurrencyDailyDTO> getDigitalCurrencyByMonths(int months) {
+        LocalDate startDate = LocalDate.now().minusMonths(months);
+
+        return repository.findAll().stream()
+                .map(e -> {
+                    // filter arrays
+                    LocalDate[] tradeDates = e.getTradeDate() != null
+                            ? Arrays.stream(e.getTradeDate())
+                            .filter(d -> !d.isBefore(startDate))
+                            .toArray(LocalDate[]::new)
+                            : new LocalDate[0];
+
+                    Double[] open = e.getOpen() != null
+                            ? IntStream.range(0, e.getOpen().length)
+                            .filter(i -> tradeDates.length > 0 && Arrays.asList(e.getTradeDate()).subList(e.getTradeDate().length - tradeDates.length, e.getTradeDate().length).contains(e.getTradeDate()[i]))
+                            .mapToDouble(i -> e.getOpen()[i])
+                            .boxed()
+                            .toArray(Double[]::new)
+                            : new Double[0];
+
+                    Double[] high = e.getHigh() != null
+                            ? IntStream.range(0, e.getHigh().length)
+                            .filter(i -> tradeDates.length > 0 && Arrays.asList(e.getTradeDate()).subList(e.getTradeDate().length - tradeDates.length, e.getTradeDate().length).contains(e.getTradeDate()[i]))
+                            .mapToDouble(i -> e.getHigh()[i])
+                            .boxed()
+                            .toArray(Double[]::new)
+                            : new Double[0];
+
+                    Double[] low = e.getLow() != null
+                            ? IntStream.range(0, e.getLow().length)
+                            .filter(i -> tradeDates.length > 0 && Arrays.asList(e.getTradeDate()).subList(e.getTradeDate().length - tradeDates.length, e.getTradeDate().length).contains(e.getTradeDate()[i]))
+                            .mapToDouble(i -> e.getLow()[i])
+                            .boxed()
+                            .toArray(Double[]::new)
+                            : new Double[0];
+
+                    Double[] close = e.getClose() != null
+                            ? IntStream.range(0, e.getClose().length)
+                            .filter(i -> tradeDates.length > 0 && Arrays.asList(e.getTradeDate()).subList(e.getTradeDate().length - tradeDates.length, e.getTradeDate().length).contains(e.getTradeDate()[i]))
+                            .mapToDouble(i -> e.getClose()[i])
+                            .boxed()
+                            .toArray(Double[]::new)
+                            : new Double[0];
+
+                    Double[] volume = e.getVolume() != null
+                            ? IntStream.range(0, e.getVolume().length)
+                            .filter(i -> tradeDates.length > 0 && Arrays.asList(e.getTradeDate()).subList(e.getTradeDate().length - tradeDates.length, e.getTradeDate().length).contains(e.getTradeDate()[i]))
+                            .mapToDouble(i -> e.getVolume()[i])
+                            .boxed()
+                            .toArray(Double[]::new)
+                            : new Double[0];
+
+                    Double[] marketCap = e.getMarketCap() != null
+                            ? IntStream.range(0, e.getMarketCap().length)
+                            .filter(i -> tradeDates.length > 0 && Arrays.asList(e.getTradeDate()).subList(e.getTradeDate().length - tradeDates.length, e.getTradeDate().length).contains(e.getTradeDate()[i]))
+                            .mapToDouble(i -> e.getMarketCap()[i])
+                            .boxed()
+                            .toArray(Double[]::new)
+                            : new Double[0];
+
+                    return new DigitalCurrencyDailyDTO(
+                            e.getId(),
+                            e.getSymbol(),
+                            e.getMarket(),
+                            tradeDates != null ? Arrays.asList(tradeDates) : new ArrayList<>(),
+                            open != null ? Arrays.asList(open) : new ArrayList<>(),
+                            high != null ? Arrays.asList(high) : new ArrayList<>(),
+                            low != null ? Arrays.asList(low) : new ArrayList<>(),
+                            close != null ? Arrays.asList(close) : new ArrayList<>(),
+                            volume != null ? Arrays.asList(volume) : new ArrayList<>(),
+                            marketCap != null ? Arrays.asList(marketCap) : new ArrayList<>()
+                    );
+                })
+                .filter(dto -> !dto.getTradeDate().isEmpty()) // remove empty ones
+                .collect(Collectors.toList());
+    }
+
+
+
+
+
 
     private LocalDate parseDate(String val) {
         try {

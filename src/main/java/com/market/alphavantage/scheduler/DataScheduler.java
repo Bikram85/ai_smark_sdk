@@ -38,9 +38,9 @@ public class DataScheduler {
     private final SharesOutstandingService sharesOutstandingService;
     private final TopGainersLosersService topGainersLosersService;
 
-    @Scheduled(cron = "0 27 09 * * SAT")
+    @Scheduled(cron = "0 30 09 * * WED")
     public void initDataSet() throws ParseException, IOException {
-       // marketService.loadListingStatus();
+        marketService.loadListingStatus();
         marketService.loadDailyPrices();
         companyOverviewService.loadOverview();
         balanceSheetService.loadBalanceSheet();
@@ -58,7 +58,7 @@ public class DataScheduler {
         realtimeOptionService.loadRealtimeOptions();
 
         fxDailyService.loadFxDaily();
-        forexTechnicalIndicatorService.loadSMA();
+        //forexTechnicalIndicatorService.loadSMA();
 
         goldSilverHistoryService.loadHistory();
         commodityService.loadCommodity();

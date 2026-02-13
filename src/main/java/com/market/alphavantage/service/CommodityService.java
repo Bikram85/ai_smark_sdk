@@ -2,9 +2,13 @@ package com.market.alphavantage.service;
 
 import com.market.alphavantage.dto.CommodityDTO;
 
+import java.util.List;
+
 public interface CommodityService {
 
     void loadCommodity();
 
-    CommodityDTO getCommodity(String function, String interval);
+    List<CommodityDTO> getCommodity();
+
+    List<CommodityDTO> getCommodityByMonths(int months);
 }
