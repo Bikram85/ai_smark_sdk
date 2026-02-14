@@ -19,9 +19,9 @@ public class OptionAnalyticsController {
     private final OptionAnalyticsService service;
     private final StockSummaryService stockSummaryService;
 
-    @GetMapping("/dashboard/all")
-    public List<OptionDashboardDTO> allSymbols() {
-        return service.analyzeAll();
+    @GetMapping("/options/analytics")
+    public void allSymbols() {
+       service.analyzeAndSaveAll();
     }
 
     @GetMapping("/{symbol}/summary")
