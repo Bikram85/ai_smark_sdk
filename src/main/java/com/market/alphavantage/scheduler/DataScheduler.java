@@ -38,21 +38,21 @@ public class DataScheduler {
     private final SharesOutstandingService sharesOutstandingService;
     private final TopGainersLosersService topGainersLosersService;
 
-    @Scheduled(cron = "0 54 18 * * FRI")
+    @Scheduled(cron = "0 04 18 * * SAT")
     public void initDataSet() throws ParseException, IOException {
        // marketService.loadListingStatus();
-        marketService.loadDailyPrices();
+       // marketService.loadDailyPrices();
        // companyOverviewService.loadOverview();
        // balanceSheetService.loadBalanceSheet();
-        cashFlowService.loadCashFlow();
-        incomeStatementService.loadIncomeStatement();
-        dividendService.loadDividends();
-        insiderTransactionService.loadInsiderTransactions();
+       // cashFlowService.loadCashFlow();
+       // incomeStatementService.loadIncomeStatement();
+       // dividendService.loadDividends();
+       // insiderTransactionService.loadInsiderTransactions();
 
-        sharesOutstandingService.loadSharesOutstanding();
-        equityTechnicalIndicatorService.loadSMA();
+       // sharesOutstandingService.loadSharesOutstanding();
+       // equityTechnicalIndicatorService.loadSMA();
 
-        topGainersLosersService.loadTopGainersLosers();
+       // topGainersLosersService.loadTopGainersLosers();
 
 
         realtimeOptionService.loadRealtimeOptions();
