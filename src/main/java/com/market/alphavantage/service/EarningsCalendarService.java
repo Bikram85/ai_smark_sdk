@@ -4,8 +4,10 @@ import com.market.alphavantage.dto.EarningsCalendarDTO;
 
 public interface EarningsCalendarService {
 
-    void loadEarningsCalendar(String horizon);
+    void loadEarningsCalendar();
 
     EarningsCalendarDTO getEarningsCalendar();
+
+    EarningsCalendarDTO loadEarningsCalendar(String horizon);
 }
 

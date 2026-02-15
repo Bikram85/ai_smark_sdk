@@ -17,7 +17,7 @@ public class EarningsCalendarController {
 
     @GetMapping("/load")
     public ResponseEntity<String> load() {
-        service.loadEarningsCalendar("3month");
+        service.loadEarningsCalendar();
         return ResponseEntity.ok("Earnings calendar loaded for horizon=" );
     }
 
@@ -25,6 +25,12 @@ public class EarningsCalendarController {
     public ResponseEntity<EarningsCalendarDTO> get() {
         EarningsCalendarDTO dto = service.getEarningsCalendar();
         if (dto == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(dto);
+    }
+
+    @GetMapping("/realtime")
+    public ResponseEntity<EarningsCalendarDTO> data() {
+        EarningsCalendarDTO dto = service.loadEarningsCalendar("3month");
         return ResponseEntity.ok(dto);
     }
 }

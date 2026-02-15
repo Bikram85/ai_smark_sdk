@@ -26,7 +26,7 @@ public class EarningsCalendar {
     @Column(name = "fiscal_date_ending")
     private LocalDate fiscalDateEnding;
 
-    @Column(nullable = true) // <-- allow nulls
+    @Column(nullable = true)
     private Double estimate;
 
     @Column(nullable = false)
@@ -34,4 +34,8 @@ public class EarningsCalendar {
 
     @Column(name = "time_of_the_day")
     private String timeOfTheDay;
+
+    /* ===== MARKET CAP CATEGORY ===== */
+    @Column(name = "market_cap_category")
+    private String marketCapCategory; // e.g., Nano, Micro, Small, Mid, Large, Mega
 }

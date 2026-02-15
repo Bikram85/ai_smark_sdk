@@ -1,11 +1,13 @@
 package com.market.alphavantage.controller;
 
 
+import com.market.alphavantage.analytics.AnalyticsAlgoService;
 import com.market.alphavantage.dto.AnalyticsDTO;
 import com.market.alphavantage.entity.Analytics;
 import com.market.alphavantage.repository.AnalyticsRepository;
 import com.market.alphavantage.util.AnalyticsMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -18,6 +20,9 @@ import java.util.stream.Collectors;
 public class AnalyticsController {
 
     private final AnalyticsRepository analyticsRepo;
+
+    @Autowired
+    AnalyticsAlgoService analyticsAlgoService;
 
     /* ===============================
        GET ALL ANALYTICS
@@ -43,6 +48,10 @@ public class AnalyticsController {
                 .marketCap(a.getMarketCap())
                 .marketCapCategory(a.getMarketCapCategory())
                 .analystRating(a.getAnalystRating())
+                .peRatio(a.getPeRatio())
+                .percentInsiders(a.getPercentInsiders())
+                .percentInstitutions(a.getPercentInstitutions())
+                .eps(a.getEps())
                 .revenueUpYears(a.getRevenueUpYears())
                 .grossProfitUpYears(a.getGrossProfitUpYears())
                 .netIncomeUpYears(a.getNetIncomeUpYears())
@@ -78,7 +87,7 @@ public class AnalyticsController {
 
         List<Analytics> analyticsList = analyticsRepo.findAll();
 
-        // Convert each Analytics entity to a Map<String, String> including all filterable fields
+        // Convert each Analytics entity to a Map<String, String>, using buckets for avgVolumeWeek
         List<Map<String, String>> rows = analyticsList.stream().map(a -> Map.ofEntries(
                 Map.entry("symbol", a.getSymbol()),
                 Map.entry("exchange", a.getExchange()),
@@ -91,7 +100,7 @@ public class AnalyticsController {
                 Map.entry("goodEntry", a.getGoodEntry() != null ? a.getGoodEntry().toString() : null),
                 Map.entry("peRatio", a.getPeRatio() != null ? a.getPeRatio().toString() : null),
                 Map.entry("priceToBook", a.getPriceToBook() != null ? a.getPriceToBook().toString() : null),
-                Map.entry("avgVolumeWeek", a.getAvgVolumeWeek() != null ? a.getAvgVolumeWeek().toString() : null),
+                Map.entry("avgVolumeWeek", mapVolumeBucket(a.getAvgVolumeWeek())),
                 Map.entry("pcr", a.getPcr() != null ? a.getPcr().toString() : null),
                 Map.entry("revenueUpYears", a.getRevenueUpYears() != null ? a.getRevenueUpYears().toString() : null),
                 Map.entry("grossProfitUpYears", a.getGrossProfitUpYears() != null ? a.getGrossProfitUpYears().toString() : null),
@@ -121,6 +130,20 @@ public class AnalyticsController {
         return filterOptions;
     }
 
+    /* ================= Helper for avgVolumeWeek bucket ================= */
+    private String mapVolumeBucket(Double volume) {
+        if (volume == null) return null;
+
+        if (volume > 1_000_000) return "> 1M";
+        if (volume > 500_000) return "> 500K";
+        if (volume > 300_000) return "> 300K";
+        if (volume > 200_000) return "> 200K";
+        if (volume > 100_000) return "> 100K";
+
+        return "<= 100K";
+    }
+
+
 
 
     /* ===============================
@@ -137,6 +160,11 @@ public class AnalyticsController {
                                         "Analytics not found"));
 
         return AnalyticsMapper.toDTO(analytics);
+    }
+
+    @GetMapping("/load")
+    public void loadData() {
+        analyticsAlgoService.runBatchAnalytics();
     }
 
 

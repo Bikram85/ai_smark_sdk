@@ -36,7 +36,9 @@ public class AnalyticsDTO {
     private String analystRating;
 
     private Double peRatio; // <-- added
-
+    private Double percentInsiders;
+    private Double percentInstitutions;
+    private Double eps;
     /* Growth - Years */
     private Integer revenueUpYears;
     private Integer grossProfitUpYears;  // <-- added
