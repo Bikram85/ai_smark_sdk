@@ -3,7 +3,9 @@ package com.market.alphavantage.dto;
 import lombok.Data;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class StockSummaryDTO {
@@ -77,11 +79,23 @@ public class StockSummaryDTO {
     /* ================= TECHNICAL INDICATORS ================= */
     @Data
     public static class IndicatorsDTO {
-        public List<LocalDate> labels;
-        public List<Double> sma;
+        // SMA multiple periods: key = "SMA_20", value = list of values
+        public Map<String, List<Double>> smaMap = new HashMap<>();
+
+        // SMA labels for each period: key = "SMA_20", value = list of dates
+        public Map<String, List<LocalDate>> smaLabelsMap = new HashMap<>();
+
+        // RSI
+        public List<LocalDate> rsiLabels;
         public List<Double> rsi;
+
+        // MACD
+        public List<LocalDate> macdLabels;
         public List<Double> macd;
     }
+
+
+
 
     /* ================= ANALYTICS ================= */
     @Data

@@ -104,20 +104,33 @@ public class StockSummaryService {
         // ===== Technical Indicators =====
         equityTechincalIndicatorProcessor.processSymbol(symbol);
         List<EquityTechnicalIndicator> indicators = technicalRepository.getData(symbol);
+
         if (indicators != null && !indicators.isEmpty()) {
             StockSummaryDTO.IndicatorsDTO ind = new StockSummaryDTO.IndicatorsDTO();
-            indicators.forEach(i -> {
-                if (i.getFunction().equalsIgnoreCase("SMA")) {
-                    ind.sma = Arrays.asList(i.getValues());
-                    ind.labels = Arrays.asList(i.getDates());
-                } else if (i.getFunction().equalsIgnoreCase("RSI")) {
-                    ind.rsi = Arrays.asList(i.getValues());
-                } else if (i.getFunction().equalsIgnoreCase("MACD")) {
-                    ind.macd = Arrays.asList(i.getValues());
+
+            for (EquityTechnicalIndicator i : indicators) {
+                String function = i.getFunction().toUpperCase();
+
+                if (function.equals("SMA")) {
+                    String period = i.getTimePeriod() != null ? i.getTimePeriod().toString() : "NA";
+                    String key = "SMA_" + period;
+
+                    ind.smaMap.put(key, Arrays.asList(i.getValues()));
+                    ind.smaLabelsMap.put(key, Arrays.asList(i.getDates())); // separate labels per SMA
                 }
-            });
+                else if (function.equals("RSI")) {
+                    ind.rsi = Arrays.asList(i.getValues());
+                    ind.rsiLabels = Arrays.asList(i.getDates());
+
+                } else if (function.equals("MACD")) {
+                    ind.macd = Arrays.asList(i.getValues());
+                    ind.macdLabels = Arrays.asList(i.getDates());
+                }
+            }
+
             dto.indicators = ind;
         }
+
 
         // ===== Analytics =====
         Analytics analytics = analyticsRepository.findById(symbol).orElse(null);
