@@ -49,8 +49,8 @@ public class AnalyticsProcessor {
         if (opt != null) {
             a.setSupport(round(opt.getSupport()));
             a.setResistance(round(opt.getResistance()));
-            a.setTotalCallOI(opt.getTotalCallOI());
-            a.setTotalPutOI(opt.getTotalPutOI());
+            //a.setTotalCallOI(opt.getTotalCallOI());
+            //a.setTotalPutOI(opt.getTotalPutOI());
             a.setPcr(round(opt.getPcr()));
             a.setBias(opt.getBias());
         }
@@ -209,10 +209,11 @@ public class AnalyticsProcessor {
     }
 
     private double gammaExposureScore(OptionDashboard o) {
-        if (o == null) return 50;
+       /* if (o == null) return 50;
         long calls = o.getTotalCallOI(), puts = o.getTotalPutOI();
         if (calls + puts == 0) return 50;
-        return round((double) calls / (calls + puts) * 100);
+        return round((double) calls / (calls + puts) * 100);*/
+        return 0.0;
     }
 
     private double volatilityScore(StockPrice p) {

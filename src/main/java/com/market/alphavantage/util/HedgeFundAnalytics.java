@@ -20,7 +20,7 @@ public class HedgeFundAnalytics {
 
     private double gammaExposureScore(OptionDashboard opt) {
 
-        if (opt == null) return 50;
+      /*  if (opt == null) return 50;
 
         long calls = opt.getTotalCallOI();
         long puts = opt.getTotalPutOI();
@@ -29,7 +29,8 @@ public class HedgeFundAnalytics {
 
         double ratio = (double) calls / (calls + puts);
 
-        return ratio * 100;
+        return ratio * 100;*/
+        return 0.0;
     }
 
     private double volatilityScore(StockPrice p) {

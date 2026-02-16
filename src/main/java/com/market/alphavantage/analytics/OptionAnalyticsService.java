@@ -89,8 +89,8 @@ public class OptionAnalyticsService {
 
         dashboard.setSupport(support);
         dashboard.setResistance(resistance);
-        dashboard.setTotalCallOI(totalCallOI);
-        dashboard.setTotalPutOI(totalPutOI);
+       // dashboard.setTotalCallOI(totalCallOI);
+       // dashboard.setTotalPutOI(totalPutOI);
         dashboard.setPcr(pcr);
         dashboard.setBias(bias);
 

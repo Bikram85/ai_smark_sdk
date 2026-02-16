@@ -4,6 +4,7 @@ import com.market.alphavantage.entity.OptionDashboard;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,4 +15,7 @@ public interface OptionDashboardRepository extends JpaRepository<OptionDashboard
     Optional<OptionDashboard> findBySymbol(String symbol);
 
     Optional<OptionDashboard> findTopBySymbolOrderByIdDesc(String symbol);
+    Optional<OptionDashboard> findBySymbolAndContractIdAndDate(String symbol, String contractId, LocalDate date);
+    Optional<OptionDashboard> findBySymbolAndContractId(String symbol, String contractId);
+
 }
