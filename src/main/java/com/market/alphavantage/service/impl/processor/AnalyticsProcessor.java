@@ -49,8 +49,8 @@ public class AnalyticsProcessor {
         if (opt != null) {
             a.setSupport(round(opt.getSupport()));
             a.setResistance(round(opt.getResistance()));
-            //a.setTotalCallOI(opt.getTotalCallOI());
-            //a.setTotalPutOI(opt.getTotalPutOI());
+            a.setCallPutVolumeRatio(opt.getCallPutVolumeRatio());
+            a.setCallPutOIRatio(opt.getCallPutOIRatio());
             a.setPcr(round(opt.getPcr()));
             a.setBias(opt.getBias());
         }

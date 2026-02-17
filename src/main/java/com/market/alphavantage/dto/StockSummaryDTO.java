@@ -106,8 +106,8 @@ public class StockSummaryDTO {
 
         public Double support;
         public Double resistance;
-        public Long totalCallOI;
-        public Long totalPutOI;
+        public Double callPutVolumeRatio;
+        public Double callPutOIRatio;
         public Double pcr;
         public String bias;
 

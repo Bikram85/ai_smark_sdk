@@ -18,4 +18,12 @@ public interface OptionDashboardRepository extends JpaRepository<OptionDashboard
     Optional<OptionDashboard> findBySymbolAndContractIdAndDate(String symbol, String contractId, LocalDate date);
     Optional<OptionDashboard> findBySymbolAndContractId(String symbol, String contractId);
 
+    List<OptionDashboard> findBySymbolOrderByDateAsc(String symbol);
+
+    Optional<OptionDashboard>
+    findFirstBySymbolAndDateOrderByIdDesc(
+            String symbol,
+            LocalDate date
+    );
+
 }

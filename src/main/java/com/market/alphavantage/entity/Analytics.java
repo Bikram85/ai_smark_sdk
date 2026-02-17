@@ -25,8 +25,8 @@ public class Analytics {
     /* ===== Options ===== */
     private Double support;
     private Double resistance;
-    private Long totalCallOI;
-    private Long totalPutOI;
+    private Double CallPutVolumeRatio;
+    private Double CallPutOIRatio;
     private Double pcr;
     private String bias;
 

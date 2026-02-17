@@ -3,8 +3,11 @@ package com.market.alphavantage.controller;
 import com.market.alphavantage.analytics.OptionAnalyticsService;
 import com.market.alphavantage.analytics.StockSummaryService;
 import com.market.alphavantage.dto.OptionDashboardDTO;
+import com.market.alphavantage.dto.OptionDashboardResponseDTO;
 import com.market.alphavantage.dto.StockSummaryDTO;
+import com.market.alphavantage.service.OptionDashboardServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +21,9 @@ public class OptionAnalyticsController {
 
     private final OptionAnalyticsService service;
     private final StockSummaryService stockSummaryService;
+
+   @Autowired
+   public  OptionDashboardServiceImpl optionDashboardService;
 
     @GetMapping("/options/analytics")
     public void allSymbols() {
@@ -43,5 +49,15 @@ public class OptionAnalyticsController {
                     .status(500)
                     .body("Error fetching stock summary for symbol: " + symbol);
         }
+    }
+
+
+
+
+    @GetMapping("/{symbol}/dashboard")
+    public OptionDashboardResponseDTO dashboard(
+            @PathVariable String symbol) {
+
+        return optionDashboardService.getDashboard(symbol);
     }
 }

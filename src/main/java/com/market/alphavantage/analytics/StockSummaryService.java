@@ -19,6 +19,7 @@ public class StockSummaryService {
     private final IncomeStatementRepository incomeStatementRepository;
     private final StockPriceRepository stockPriceRepository;
     private final EquityTechnicalIndicatorRepository technicalRepository;
+    private final OptionDashboardRepository optionDashboardRepository;
     private final AnalyticsRepository analyticsRepository;   // <-- inject Analytics
 
     @Autowired
@@ -141,8 +142,8 @@ public class StockSummaryService {
             a.avgVolumeWeek = analytics.getAvgVolumeWeek();
             a.support = analytics.getSupport();
             a.resistance = analytics.getResistance();
-            a.totalCallOI = analytics.getTotalCallOI();
-            a.totalPutOI = analytics.getTotalPutOI();
+            a.callPutVolumeRatio = analytics.getCallPutVolumeRatio();
+            a.callPutOIRatio = analytics.getCallPutOIRatio();
             a.pcr = analytics.getPcr();
             a.bias = analytics.getBias();
             a.sector = analytics.getSector();

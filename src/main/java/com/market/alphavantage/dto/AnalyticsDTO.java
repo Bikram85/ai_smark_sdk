@@ -23,8 +23,8 @@ public class AnalyticsDTO {
     /* Options */
     private Double support;
     private Double resistance;
-    private Long totalCallOI;
-    private Long totalPutOI;
+    private Double callPutVolumeRatio;
+    private Double callPutOIRatio;
     private Double pcr;
     private String bias;
 

@@ -15,8 +15,8 @@ public class AnalyticsMapper {
 
                 .support(a.getSupport())
                 .resistance(a.getResistance())
-                .totalCallOI(a.getTotalCallOI())
-                .totalPutOI(a.getTotalPutOI())
+                .callPutVolumeRatio(a.getCallPutVolumeRatio())
+                .callPutOIRatio(a.getCallPutOIRatio())
                 .pcr(a.getPcr())
                 .bias(a.getBias())
 
