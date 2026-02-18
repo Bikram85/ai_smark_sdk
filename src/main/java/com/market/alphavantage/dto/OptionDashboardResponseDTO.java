@@ -28,5 +28,8 @@ public class OptionDashboardResponseDTO {
     private Map<LocalDate, List<StrikeDataPointDTO>> volumeByExpiration;
 
     // Signals engine output
-    private List<OptionSignalDTO> signals;
+    private  Map<LocalDate, List<OptionSignalDTO>> SignalsByExpiration;
+
+    private List<LocalDate> expirationDates;
+
 }

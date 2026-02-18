@@ -32,6 +32,11 @@ public class OptionDashboardServiceImpl {
 
         dto.setLatestDate(all.get(all.size() - 1).getDate());
 
+        // NEW: expiration dropdown
+        dto.setExpirationDates(
+                repository.findDistinctDatesBySymbol(symbol)
+        );
+
         dto.setBiasTrend(getBiasTrend(all));
 
         dto.setIvByExpiration(buildStrikeMap(all,
@@ -59,7 +64,7 @@ public class OptionDashboardServiceImpl {
         dto.setOiRatioTrend(getMetric(all, OptionDashboard::getCallPutOIRatio));
         dto.setVolumeRatioTrend(getMetric(all, OptionDashboard::getCallPutVolumeRatio));
 
-        dto.setSignals(buildSignals(all.get(all.size() - 1)));
+        dto.setSignalsByExpiration(buildSignalsByExpiration(all));
 
         return dto;
     }
@@ -177,6 +182,18 @@ public class OptionDashboardServiceImpl {
 
         return result;
     }
+    /* ---------- SIGNALS BY EXPIRATION ---------- */
+    private Map<LocalDate, List<OptionSignalDTO>> buildSignalsByExpiration(List<OptionDashboard> all) {
+        Map<LocalDate, List<OptionSignalDTO>> signalsMap = new LinkedHashMap<>();
+
+        for (OptionDashboard dash : all) {
+            signalsMap.put(dash.getDate(), buildSignals(dash));
+        }
+
+        return signalsMap;
+    }
+
+
 
     /* ---------- SIGNAL ENGINE ---------- */
     private List<OptionSignalDTO> buildSignals(OptionDashboard dash) {
