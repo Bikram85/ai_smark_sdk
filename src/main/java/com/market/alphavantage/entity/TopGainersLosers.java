@@ -28,4 +28,7 @@ public class TopGainersLosers {
     private Double percentChange;
 
     private Long volume;
+
+    @Column(name = "market_cap_category")
+    private String marketCapCategory;
 }

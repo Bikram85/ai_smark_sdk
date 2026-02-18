@@ -1,7 +1,9 @@
 package com.market.alphavantage.service.impl;
 
 import com.market.alphavantage.dto.TopGainersLosersDTO;
+import com.market.alphavantage.entity.CompanyOverview;
 import com.market.alphavantage.entity.TopGainersLosers;
+import com.market.alphavantage.repository.CompanyOverviewRepository;
 import com.market.alphavantage.repository.TopGainersLosersRepository;
 import com.market.alphavantage.service.TopGainersLosersService;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +16,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +25,7 @@ public class TopGainersLosersServiceImpl implements TopGainersLosersService {
 
     private final TopGainersLosersRepository repository;
     private final RestTemplate restTemplate;
+    private final CompanyOverviewRepository companyRepo;
 
     @Value("${alphavantage.baseUrl}")
     private String baseUrl;
@@ -79,8 +83,18 @@ public class TopGainersLosersServiceImpl implements TopGainersLosersService {
             entity.setPercentChange(parsePercent(item.get("change_percentage")));
             entity.setVolume(parseLong(item.get("volume")));
 
+            // ===== MARKET CAP CATEGORY =====
+            try {
+                Optional<CompanyOverview> coOpt = companyRepo.findById(entity.getSymbol());
+                Long marketCap = coOpt.map(CompanyOverview::getMarketCapitalization).orElse(null);
+                entity.setMarketCapCategory(determineMarketCapCategory(marketCap));
+            } catch (Exception ex) {
+                entity.setMarketCapCategory("Unknown");
+            }
+
             repository.save(entity);
         }
+
 
         logInfo("Saved " + type + " with id: " + id + ", entries: " + list.size());
     }
@@ -103,7 +117,8 @@ public class TopGainersLosersServiceImpl implements TopGainersLosersService {
                 entities.stream().map(TopGainersLosers::getPrice).toList(),
                 entities.stream().map(TopGainersLosers::getChange).toList(),
                 entities.stream().map(TopGainersLosers::getPercentChange).toList(),
-                entities.stream().map(TopGainersLosers::getVolume).toList()
+                entities.stream().map(TopGainersLosers::getVolume).toList(),
+                entities.stream().map(TopGainersLosers::getMarketCapCategory).toList()
         );
     }
 
@@ -132,4 +147,15 @@ public class TopGainersLosersServiceImpl implements TopGainersLosersService {
     private void logError(String msg) {
         System.err.println("[" + LocalDateTime.now().format(formatter) + "] ERROR: " + msg);
     }
+    private String determineMarketCapCategory(Long cap) {
+        if (cap == null) return "Unknown";
+        if (cap < 50_000_000) return "Nano Cap";
+        if (cap < 300_000_000) return "Micro Cap";
+        if (cap < 2_000_000_000L) return "Small Cap";
+        if (cap < 10_000_000_000L) return "Mid Cap";
+        if (cap < 200_000_000_000L) return "Large Cap";
+        return "Mega Cap";
+    }
+
+
 }

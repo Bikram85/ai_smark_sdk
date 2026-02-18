@@ -17,6 +17,7 @@ public class TopGainersLosersDTO {
     private List<Double> changes;
     private List<Double> percentChanges;
     private List<Long> volumes;
+    private List<String> marketCapCategory;
 
     // constructor, getters, setters
 }
