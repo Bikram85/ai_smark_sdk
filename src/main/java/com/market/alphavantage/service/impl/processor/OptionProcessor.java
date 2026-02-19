@@ -9,6 +9,8 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -19,10 +21,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class OptionProcessor {
+
     private final OptionDashboardRepository repository;
-
     private final RestTemplate restTemplate;
-
 
     @Value("${alphavantage.baseUrl}")
     private String baseUrl;
@@ -34,8 +35,9 @@ public class OptionProcessor {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void fetchDetails(String symbol) {
+
         try {
-            TimeUnit.SECONDS.sleep(1); // throttle API
+            TimeUnit.SECONDS.sleep(1);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -49,20 +51,21 @@ public class OptionProcessor {
         Map<String, Object> response = restTemplate.getForObject(url, Map.class);
         if (response == null || response.isEmpty()) return;
 
-        List<Map<String, Object>> optionData = (List<Map<String, Object>>) response.get("data");
+        List<Map<String, Object>> optionData =
+                (List<Map<String, Object>>) response.get("data");
         if (optionData == null || optionData.isEmpty()) return;
 
-        // Group options by expiration only
-        Map<String, List<Map<String, Object>>> optionsByExpiration = optionData.stream()
-                .collect(Collectors.groupingBy(opt -> (String) opt.get("expiration")));
+        Map<String, List<Map<String, Object>>> optionsByExpiration =
+                optionData.stream()
+                        .collect(Collectors.groupingBy(opt -> (String) opt.get("expiration")));
 
         for (String expiration : optionsByExpiration.keySet()) {
+
             List<Map<String, Object>> optionsForExp = optionsByExpiration.get(expiration);
             if (optionsForExp.isEmpty()) continue;
 
-            String contractId = (String) optionsForExp.get(0).get("contractID"); // first contract of expiration
+            String contractId = (String) optionsForExp.get(0).get("contractID");
 
-            // Initialize arrays
             List<Long> callOIList = new ArrayList<>();
             List<Double> callStrikeList = new ArrayList<>();
             List<Long> callVolumeList = new ArrayList<>();
@@ -83,43 +86,43 @@ public class OptionProcessor {
             List<Double> putVegaList = new ArrayList<>();
             List<Double> putRhoList = new ArrayList<>();
 
-            // Fill arrays
             for (Map<String, Object> opt : optionsForExp) {
+
                 String type = (String) opt.get("type");
 
                 if ("call".equalsIgnoreCase(type)) {
+
                     callOIList.add(Long.parseLong(opt.get("open_interest").toString()));
-                    callStrikeList.add(Double.parseDouble(opt.get("strike").toString()));
+                    callStrikeList.add(round2(parseDouble(opt.get("strike"))));
                     callVolumeList.add(Long.parseLong(opt.get("volume").toString()));
-                    callIVList.add(Double.parseDouble(opt.get("implied_volatility").toString()));
-                    callDeltaList.add(Double.parseDouble(opt.get("delta").toString()));
-                    callGammaList.add(Double.parseDouble(opt.get("gamma").toString()));
-                    callThetaList.add(Double.parseDouble(opt.get("theta").toString()));
-                    callVegaList.add(Double.parseDouble(opt.get("vega").toString()));
-                    callRhoList.add(Double.parseDouble(opt.get("rho").toString()));
+                    callIVList.add(round2(parseDouble(opt.get("implied_volatility"))));
+                    callDeltaList.add(round2(parseDouble(opt.get("delta"))));
+                    callGammaList.add(round2(parseDouble(opt.get("gamma"))));
+                    callThetaList.add(round2(parseDouble(opt.get("theta"))));
+                    callVegaList.add(round2(parseDouble(opt.get("vega"))));
+                    callRhoList.add(round2(parseDouble(opt.get("rho"))));
+
                 } else if ("put".equalsIgnoreCase(type)) {
+
                     putOIList.add(Long.parseLong(opt.get("open_interest").toString()));
-                    putStrikeList.add(Double.parseDouble(opt.get("strike").toString()));
+                    putStrikeList.add(round2(parseDouble(opt.get("strike"))));
                     putVolumeList.add(Long.parseLong(opt.get("volume").toString()));
-                    putIVList.add(Double.parseDouble(opt.get("implied_volatility").toString()));
-                    putDeltaList.add(Double.parseDouble(opt.get("delta").toString()));
-                    putGammaList.add(Double.parseDouble(opt.get("gamma").toString()));
-                    putThetaList.add(Double.parseDouble(opt.get("theta").toString()));
-                    putVegaList.add(Double.parseDouble(opt.get("vega").toString()));
-                    putRhoList.add(Double.parseDouble(opt.get("rho").toString()));
+                    putIVList.add(round2(parseDouble(opt.get("implied_volatility"))));
+                    putDeltaList.add(round2(parseDouble(opt.get("delta"))));
+                    putGammaList.add(round2(parseDouble(opt.get("gamma"))));
+                    putThetaList.add(round2(parseDouble(opt.get("theta"))));
+                    putVegaList.add(round2(parseDouble(opt.get("vega"))));
+                    putRhoList.add(round2(parseDouble(opt.get("rho"))));
                 }
             }
 
-            // Save/update dashboard row for this symbol + expiration
             OptionDashboard dashboard = repository
                     .findBySymbolAndContractId(symbol, contractId)
                     .orElseGet(OptionDashboard::new);
 
             dashboard.setSymbol(symbol);
             dashboard.setContractId(contractId);
-            LocalDate expirationDate = LocalDate.parse(expiration);
-            dashboard.setDate(expirationDate);
-
+            dashboard.setDate(LocalDate.parse(expiration));
 
             dashboard.setCallOpenInterest(callOIList.toArray(new Long[0]));
             dashboard.setCallStrikePrice(callStrikeList.toArray(new Double[0]));
@@ -141,15 +144,14 @@ public class OptionProcessor {
             dashboard.setPutVega(putVegaList.toArray(new Double[0]));
             dashboard.setPutRho(putRhoList.toArray(new Double[0]));
 
-            // Calculate metrics per expiration
             calculateMetrics(dashboard);
 
             repository.save(dashboard);
         }
     }
 
-
     private void calculateMetrics(OptionDashboard dash) {
+
         Long[] callOI = dash.getCallOpenInterest();
         Long[] putOI = dash.getPutOpenInterest();
         Long[] callVol = dash.getCallVolume();
@@ -161,6 +163,7 @@ public class OptionProcessor {
         long totalPutOI = 0;
         long totalCallVol = 0;
         long totalPutVol = 0;
+
         double resistance = 0;
         double support = 0;
         long maxCallOI = 0;
@@ -184,38 +187,31 @@ public class OptionProcessor {
             }
         }
 
-        dash.setResistance(resistance);
-        dash.setSupport(support);
-        dash.setCallPutOIRatio(totalPutOI == 0 ? 0 : (double) totalCallOI / totalPutOI);
-        dash.setCallPutVolumeRatio(totalPutVol == 0 ? 0 : (double) totalCallVol / totalPutVol);
-        dash.setPcr(totalCallOI == 0 ? 0 : (double) totalPutOI / totalCallOI);
+        dash.setResistance(round2(resistance));
+        dash.setSupport(round2(support));
 
-        double pcr = dash.getPcr();
+        double oiRatio = totalPutOI == 0 ? 0 : (double) totalCallOI / totalPutOI;
+        double volRatio = totalPutVol == 0 ? 0 : (double) totalCallVol / totalPutVol;
+        double pcr = totalCallOI == 0 ? 0 : (double) totalPutOI / totalCallOI;
+
+        dash.setCallPutOIRatio(round2(oiRatio));
+        dash.setCallPutVolumeRatio(round2(volRatio));
+        dash.setPcr(round2(pcr));
+
         if (pcr > 1.2) dash.setBias("BULLISH");
         else if (pcr < 0.8) dash.setBias("BEARISH");
         else dash.setBias("RANGE");
 
-        dash.setMaxPain(calculateMaxPain(dash));
-    }
-
-
-
-
-    private void logInfo(String message) {
-        System.out.println("[" + LocalDateTime.now().format(formatter) + "] INFO: " + message);
-    }
-
-    private void logError(String message) {
-        System.err.println("[" + LocalDateTime.now().format(formatter) + "] ERROR: " + message);
+        dash.setMaxPain(round2(calculateMaxPain(dash)));
     }
 
     private double calculateMaxPain(OptionDashboard dash) {
+
         Double[] callStrikes = dash.getCallStrikePrice();
         Long[] callOI = dash.getCallOpenInterest();
         Double[] putStrikes = dash.getPutStrikePrice();
         Long[] putOI = dash.getPutOpenInterest();
 
-        // Combine all strikes to evaluate
         Set<Double> allStrikes = new HashSet<>();
         Collections.addAll(allStrikes, callStrikes);
         Collections.addAll(allStrikes, putStrikes);
@@ -224,14 +220,13 @@ public class OptionProcessor {
         double maxPainStrike = 0;
 
         for (double s : allStrikes) {
+
             double totalLoss = 0;
 
-            // Call losses
             for (int i = 0; i < callStrikes.length; i++) {
                 totalLoss += Math.max(0, (s - callStrikes[i]) * callOI[i]);
             }
 
-            // Put losses
             for (int i = 0; i < putStrikes.length; i++) {
                 totalLoss += Math.max(0, (putStrikes[i] - s) * putOI[i]);
             }
@@ -245,6 +240,13 @@ public class OptionProcessor {
         return maxPainStrike;
     }
 
+    private double round2(double value) {
+        return new BigDecimal(value)
+                .setScale(2, RoundingMode.HALF_UP)
+                .doubleValue();
+    }
 
-
+    private double parseDouble(Object obj) {
+        return Double.parseDouble(obj.toString());
+    }
 }

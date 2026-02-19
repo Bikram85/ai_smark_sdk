@@ -43,7 +43,7 @@ public class IndexPriceServiceImpl {
             }
 
         }
-       // captureIndex();
+        captureIndex();
         List<IndexPrice> entities = repository.findAll();
         List<IndexPriceDTO> result = new ArrayList<>();
         for (IndexPrice e : entities) {
