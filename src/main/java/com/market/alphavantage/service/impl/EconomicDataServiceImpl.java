@@ -37,26 +37,32 @@ public class EconomicDataServiceImpl implements EconomicDataService {
      */
     @Override
     public void loadEconomicData() {
-        loadData("REAL_GDP", "quarterly");
-        loadData("REAL_GDP_PER_CAPITA", "quarterly");
-        loadData("TREASURY_YIELD", "monthly");
-        loadData("FEDERAL_FUNDS_RATE", "monthly");
-        loadData("CPI", "monthly");
-        loadData("INFLATION", "monthly");
-        loadData("RETAIL_SALES", "monthly");
-        loadData("DURABLES", "monthly");
-        loadData("UNEMPLOYMENT", "monthly");
-        loadData("NONFARM_PAYROLL", "monthly");
+        loadData("REAL_GDP", "daily","");
+        loadData("REAL_GDP_PER_CAPITA", "daily","");
+        loadData("TREASURY_YIELD", "daily","2year");
+        loadData("TREASURY_YIELD", "daily","5year");
+        loadData("TREASURY_YIELD", "daily","10year");
+
+        loadData("FEDERAL_FUNDS_RATE", "daily","");
+        loadData("CPI", "daily","");
+        loadData("INFLATION", "daily","");
+        loadData("RETAIL_SALES", "daily","");
+        loadData("DURABLES", "daily","");
+        loadData("UNEMPLOYMENT", "daily","");
+        loadData("NONFARM_PAYROLL", "daily","");
     }
 
     /**
      * Load data for a single economic function/interval and save into DB.
      */
-    public void loadData(String function, String interval) {
+    public void loadData(String function, String interval,String maturity) {
         try {
             String url = baseUrl + "?function=" + function;
             if (interval != null && !interval.isEmpty()) {
                 url += "&interval=" + interval;
+            }
+            if (maturity != null && !maturity.isEmpty()) {
+                url += "&maturity=" + maturity;
             }
             url += "&apikey=" + apiKey;
 
@@ -99,8 +105,8 @@ public class EconomicDataServiceImpl implements EconomicDataService {
             }
 
             EconomicData entity = new EconomicData();
-            entity.setSymbol(function);
-            entity.setName(function.replace("_", " "));
+            entity.setSymbol(function+maturity);
+            entity.setName(function.replace("_", " ") );
             entity.setInterval(interval);
             entity.setDates(datesList.toArray(new LocalDate[0]));
             entity.setValues(valuesList.toArray(new Double[0]));

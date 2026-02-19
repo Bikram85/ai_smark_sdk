@@ -7,9 +7,11 @@ import com.market.alphavantage.entity.IndexPrice;
 import com.market.alphavantage.repository.IndexPriceRepository;
 import com.market.alphavantage.util.IndexConstants;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import com.market.alphavantage.yahoo.impl.StockPriceImpl;
 
 import java.util.*;
 
@@ -20,6 +22,9 @@ public class IndexPriceServiceImpl {
     private final IndexPriceRepository repository;
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper mapper = new ObjectMapper();
+
+    @Autowired
+    StockPriceImpl stockPrice;
 
     @Value("${alphavantage.apiKey}")
     private String apiKey;
@@ -38,6 +43,7 @@ public class IndexPriceServiceImpl {
             }
 
         }
+       // captureIndex();
         List<IndexPrice> entities = repository.findAll();
         List<IndexPriceDTO> result = new ArrayList<>();
         for (IndexPrice e : entities) {
@@ -147,4 +153,47 @@ public class IndexPriceServiceImpl {
                 .volume(Arrays.asList(e.getVolume()))
                 .build();
     }
+
+    public void captureIndex(){
+
+        //  100 biggest companies by market capitalisation on the London Stock Exchange (LSE).
+        stockPrice.captureTickerPriceFromYahoo("^FTSE");
+        //  Index also gives a general idea of the direction of the Euronext Paris,
+        //  the largest stock exchange in France formerly known as the Paris Bourse..
+        stockPrice.captureTickerPriceFromYahoo("^FCHI");
+        //Xetra is a fully electronic trading platform. Headquartered in Frankfurt, Germany,
+        // the exchange is operated by Deutsche Börse Group, which also owns the Frankfurt Stock Exchange (FRA) or Frankfurter Wertpapierbörse
+        stockPrice.captureTickerPriceFromYahoo("^GDAXI");
+        //Swiss Market Index
+        stockPrice.captureTickerPriceFromYahoo("^SSMI");
+        //stock index consisting of the largest and most liquid companies on the Italian national stock exchange
+        stockPrice.captureTickerPriceFromYahoo("FTSEMIB.MI");
+        //Spanish stock exchange
+        stockPrice.captureTickerPriceFromYahoo("^IBEX");
+
+        //Dow Jones Industrial Average (^DJI)
+        stockPrice.captureTickerPriceFromYahoo("^DJI");
+        //Russell 2000 (^RUT)
+        stockPrice.captureTickerPriceFromYahoo("^RUT");
+        // FTSE 100 (^FTSE)
+        stockPrice.captureTickerPriceFromYahoo("^FTSE");
+        //Chines 500
+        stockPrice.captureTickerPriceFromYahoo("GXC");
+        //india
+        stockPrice.captureTickerPriceFromYahoo("^CRSLDX");
+        //SPY
+        stockPrice.captureTickerPriceFromYahoo("^GSPC");
+        //Nikke
+        stockPrice.captureTickerPriceFromYahoo("^N225");
+        //Nasdaq Compisite index
+        stockPrice.captureTickerPriceFromYahoo("^IXIC");
+        //Nasdaq Compisite index
+        stockPrice.captureTickerPriceFromYahoo("^VIX");
+
+
+
+
+
+    }
+
 }

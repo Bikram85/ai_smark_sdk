@@ -144,26 +144,26 @@ CREATE TABLE public.analysis
 
 https://www.bezkoder.com/spring-boot-postgresql-example/
 
-https://query1.finance.yahoo.com/v7/finance/quote?formatted=true&crumb=f7iTv47R1nq&lang=en-US&region=US&symbols=AAPL&fields=messageBoardId%2ClongName%2CshortName%2CmarketCap%2CunderlyingSymbol%2CunderlyingExchangeSymbol%2CheadSymbolAsString%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2Cuuid%2CregularMarketOpen%2CfiftyTwoWeekLow%2CfiftyTwoWeekHigh%2CtoCurrency%2CfromCurrency%2CtoExchange%2CfromExchange%2CcorporateActions&corsDomain=finance.yahoo.com
+https://query1.finance.com.market.alphavantage.yahoo.com/v7/finance/quote?formatted=true&crumb=f7iTv47R1nq&lang=en-US&region=US&symbols=AAPL&fields=messageBoardId%2ClongName%2CshortName%2CmarketCap%2CunderlyingSymbol%2CunderlyingExchangeSymbol%2CheadSymbolAsString%2CregularMarketPrice%2CregularMarketChange%2CregularMarketChangePercent%2CregularMarketVolume%2Cuuid%2CregularMarketOpen%2CfiftyTwoWeekLow%2CfiftyTwoWeekHigh%2CtoCurrency%2CfromCurrency%2CtoExchange%2CfromExchange%2CcorporateActions&corsDomain=finance.com.market.alphavantage.yahoo.com
 
-https://query1.finance.yahoo.com/v7/finance/spark?symbols=%5ERUT&range=1d&interval=5m&indicators=close&includeTimestamps=false&includePrePost=false&corsDomain=finance.yahoo.com&.tsrc=finance
+https://query1.finance.com.market.alphavantage.yahoo.com/v7/finance/spark?symbols=%5ERUT&range=1d&interval=5m&indicators=close&includeTimestamps=false&includePrePost=false&corsDomain=finance.com.market.alphavantage.yahoo.com&.tsrc=finance
 
 
-https://query1.finance.yahoo.com/v7/finance/spark?symbols=CL%3DF&range=1d&interval=5m&indicators=close&includeTimestamps=false&includePrePost=false&corsDomain=finance.yahoo.com&.tsrc=finance
+https://query1.finance.com.market.alphavantage.yahoo.com/v7/finance/spark?symbols=CL%3DF&range=1d&interval=5m&indicators=close&includeTimestamps=false&includePrePost=false&corsDomain=finance.com.market.alphavantage.yahoo.com&.tsrc=finance
 
 Historic Data -
-https://query1.finance.yahoo.com/v7/finance/spark?symbols=%5ERUT&range=1d&interval=5m&indicators=close&includeTimestamps=false&includePrePost=false&corsDomain=finance.yahoo.com&.tsrc=finance
+https://query1.finance.com.market.alphavantage.yahoo.com/v7/finance/spark?symbols=%5ERUT&range=1d&interval=5m&indicators=close&includeTimestamps=false&includePrePost=false&corsDomain=finance.com.market.alphavantage.yahoo.com&.tsrc=finance
 
 To get the csv file, use this for Apple
 
-https://query1.finance.yahoo.com/v7/finance/download/AAPL?period1=From&period2=To&interval=1d&events=div&includeAdjustedClose=true
+https://query1.finance.com.market.alphavantage.yahoo.com/v7/finance/download/AAPL?period1=From&period2=To&interval=1d&events=div&includeAdjustedClose=true
 
 Try this for the dividends during last year again using Apple as an example
 
 https://api.nasdaq.com/api/quote/AAPL/summary?assetclass=stocks
 
 
-https://query1.finance.yahoo.com/v7/finance/download/AAPL?period1=1594598400&period2=1626134400&interval=1d&events=div&includeAdjustedClose=true
+https://query1.finance.com.market.alphavantage.yahoo.com/v7/finance/download/AAPL?period1=1594598400&period2=1626134400&interval=1d&events=div&includeAdjustedClose=true
 
 
 DELETE FROM stock_price

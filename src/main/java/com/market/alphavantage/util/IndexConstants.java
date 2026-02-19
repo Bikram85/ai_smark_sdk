@@ -13,6 +13,18 @@ public class IndexConstants {
     private final String symbol;      // ETF symbol
     private final String country;     // Country code
     private final String name;        // Friendly name / description
+   /* FTSE 100: ISF.L or VUKE.L
+    CAC 40: CAC.PA (Lyxor CAC 40), or Amundi CAC 40 ETF
+    DAX: DAXEX.DEX (Xtrackers DAX UCITS ETF), or EXS1.DEX
+    SMI: CSSMI.SW (iShares SMI)
+    FTSE MIB: MIBX.MI (iShares FTSE MIB)
+    IBEX 35: IBEX.MC (Lyxor/Amundi IBEX 35)
+    S&P 500: SPY or VUSA.L
+    Russell 2000: IWM
+    NASDAQ Composite proxy: ONEQ (ETF tracking Nasdaq Composite)
+    Nikkei 225: 1321.T (Nomura Nikkei 225 ETF)
+    China large/mid (your “GXC” is already an ETF)
+    */
 
     // Popular indices represented by ETFs for easy tracking
     public static final List<IndexConstants> POPULAR_INDICES = Arrays.asList(
@@ -25,7 +37,7 @@ public class IndexConstants {
             new IndexConstants("EWJ", "JP", "Japan ETF"),
 
             // India
-            new IndexConstants("INDA", "IN", "India ETF"),
+            new IndexConstants("NIFTYBEES.BSE", "IN", "India ETF"),
 
             // United Kingdom
             new IndexConstants("EWU", "UK", "UK ETF"),
