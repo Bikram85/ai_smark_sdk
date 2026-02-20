@@ -56,7 +56,7 @@ public class RealtimeOptionServiceImpl implements RealtimeOptionService {
         stocks.forEach(symbol -> processSymbol(symbol.getSymbol(), processed, success, failed, total));
 
         logInfo("\n===== SUMMARY =====");
-        logInfo("Total symbols : " + total);
+        logInfo("Total loadRealtimeOptions symbols : " + total);
         logInfo("Success       : " + success.get());
         logInfo("Failed        : " + failed.get());
     }
@@ -72,10 +72,10 @@ public class RealtimeOptionServiceImpl implements RealtimeOptionService {
         try {
             optionProcessor.fetchDetails(symbol);
             success.incrementAndGet();
-            logInfo("Processed " + current + "/" + total + " SUCCESS: " + symbol);
+            logInfo("Processed loadRealtimeOptions " + current + "/" + total + " SUCCESS: " + symbol);
         } catch (Exception ex) {
             failed.incrementAndGet();
-            logError("Processed " + current + "/" + total + " FAILED: " + symbol + " Reason: " + ex.getMessage());
+            logError("Processed loadRealtimeOptions " + current + "/" + total + " FAILED: " + symbol + " Reason: " + ex.getMessage());
         }
     }
 

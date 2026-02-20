@@ -42,7 +42,7 @@ public class DataScheduler {
     private final DigitalCurrencyDailyService service;
     private final IndexPriceServiceImpl indexPriceService;
 
-    @Scheduled(cron = "0 04 18 * * SAT")
+    @Scheduled(cron = "0 33 14 * * FRI")
     public void initDataSet() throws ParseException, IOException {
        // marketService.loadListingStatus();
        // marketService.loadDailyPrices();
@@ -61,27 +61,27 @@ public class DataScheduler {
 
         realtimeOptionService.loadRealtimeOptions();
 
-        fxDailyService.loadFxDaily();
+       // fxDailyService.loadFxDaily();
         //forexTechnicalIndicatorService.loadSMA();
 
-        goldSilverHistoryService.loadHistory();
-        commodityService.loadCommodity();
+      //  goldSilverHistoryService.loadHistory();
+       // commodityService.loadCommodity();
 
 
-        digitalCurrencyDailyService.loadDigitalCurrencyDaily();
+       // digitalCurrencyDailyService.loadDigitalCurrencyDaily();
 
 
-        earningsCalendarService.loadEarningsCalendar("3month");
-        ipoCalendarService.loadIpoCalendar();
+       // earningsCalendarService.loadEarningsCalendar("3month");
+       // ipoCalendarService.loadIpoCalendar();
 
 
     }
 
     @Scheduled(cron = "0 * 7-19 * * 1-5") // every minute, 7AM-7PM, Mon-Fri
     public void intradayUpdate() throws ParseException, IOException {
-        service.loadDigitalCurrencyIntraday();
-        fxDailyService.loadFxIntraday();
-        indexPriceService.fetchAllPopularIndicesIntraday();
+       // service.loadDigitalCurrencyIntraday();
+       // fxDailyService.loadFxIntraday();
+       // indexPriceService.fetchAllPopularIndicesIntraday();
 
         try {
             TimeUnit.SECONDS.sleep(1);
@@ -89,6 +89,6 @@ public class DataScheduler {
             e.printStackTrace();
         }
 
-        marketService.fetchBulkIntraday();
+       // marketService.fetchBulkIntraday();
     }
 }

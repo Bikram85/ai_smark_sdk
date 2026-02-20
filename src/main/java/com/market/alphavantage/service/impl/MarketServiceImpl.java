@@ -1,10 +1,9 @@
 package com.market.alphavantage.service.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.market.alphavantage.dto.ETFPriceDTO;
-import com.market.alphavantage.entity.Analytics;
-import com.market.alphavantage.entity.ETFPrice;
-import com.market.alphavantage.entity.StockPrice;
-import com.market.alphavantage.entity.Symbol;
+import com.market.alphavantage.entity.*;
 import com.market.alphavantage.repository.AnalyticsRepository;
 import com.market.alphavantage.repository.ETFPriceRepository;
 import com.market.alphavantage.repository.StockPriceRepository;
@@ -16,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
-import javax.sound.midi.Soundbank;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -43,6 +41,8 @@ public class MarketServiceImpl implements MarketService {
     @Value("${alphavantage.apiKey}")
     private String apiKey;
 
+
+    private final ObjectMapper mapper = new ObjectMapper();
 
     // API 1: Listing status
     @Override
@@ -97,21 +97,25 @@ public class MarketServiceImpl implements MarketService {
     @Override
     public void fetchBulkIntraday() {
 
-        List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
+        List<String> highVolumeSymbols =
+                analyticsRepository.findSymbolsWithAvgVolumeGreaterThan(500000.0);
 
-        List<String> symbols = stocks.stream()
-                .map(Symbol::getSymbol)
-                .toList();
+        int total = highVolumeSymbols.size();
+        int processed = 0;
+        int failed = 0;
 
-        int batchSize = 100;
-
-        for (int i = 0; i < symbols.size(); i += batchSize) {
-
-            List<String> batch = symbols.subList(i,
-                    Math.min(i + batchSize, symbols.size()));
-
-            processBulkBatch(batch);
+        for (String symbol : highVolumeSymbols) {
+            boolean success = fetchAndUpdateIntraday(symbol);
+            if (success) {
+                processed++;
+            } else {
+                failed++;
+            }
         }
+
+        System.out.println("Total symbols today: " + total);
+        System.out.println("Successfully processed: " + processed);
+        System.out.println("Failed: " + failed);
     }
 
 
@@ -198,21 +202,7 @@ public class MarketServiceImpl implements MarketService {
     }
 
 
-    private Long[] filterArrayByDatesLong(
-            Long[] data,
-            LocalDate[] allDates,
-            LocalDate[] filteredDates) {
 
-        if (data == null || allDates == null || filteredDates == null)
-            return new Long[0];
-
-        Set<LocalDate> dateSet = new HashSet<>(Arrays.asList(filteredDates));
-
-        return IntStream.range(0, allDates.length)
-                .filter(i -> dateSet.contains(allDates[i]) && i < data.length)
-                .mapToObj(i -> data[i])
-                .toArray(Long[]::new);
-    }
 
 
 
@@ -321,139 +311,113 @@ public class MarketServiceImpl implements MarketService {
         }
     }
 
-    private void processBulkBatch(List<String> batch) {
+    @Transactional
+    public boolean fetchAndUpdateIntraday(String symbol) {
         try {
             TimeUnit.SECONDS.sleep(1);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
-        String joinedSymbols = String.join(",", batch);
+        try {
 
-        String url = baseUrl
-                + "?function=REALTIME_BULK_QUOTES"
-                + "&symbol=" + joinedSymbols
-                + "&apikey=" + apiKey;
+            String url = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY"
+                    + "&symbol=" + symbol
+                    + "&interval=5min"
+                    + "&apikey=" + apiKey;
 
-        Map response = restTemplate.getForObject(url, Map.class);
+            String response = restTemplate.getForObject(url, String.class);
+            JsonNode root = mapper.readTree(response);
 
-        List<Map<String, String>> quotes =
-                (List<Map<String, String>>) response.get("data");
+            // API limit check
+            if (root.has("Note") || root.has("Error Message")) {
+                System.out.println("API limit hit or error for " + symbol);
+                return false;
+            }
 
-        if (quotes == null) {
-            System.out.println("Bulk response empty");
-            return;
-        }
+            JsonNode meta = root.get("Meta Data");
+            JsonNode series = root.get("Time Series (5min)");
+            if (meta == null || series == null) return false;
 
-        for (Map<String, String> quote : quotes) {
-            updateSymbolPrice(quote);
+            String latestTimestamp = meta.get("3. Last Refreshed").asText();
+            JsonNode candle = series.get(latestTimestamp);
+            if (candle == null) return false;
+
+            double open = candle.get("1. open").asDouble();
+            double high = candle.get("2. high").asDouble();
+            double low = candle.get("3. low").asDouble();
+            double close = candle.get("4. close").asDouble();
+            double volume = candle.get("5. volume").asDouble();
+
+            LocalDate todayDate = LocalDate.now();
+
+            Optional<StockPrice> optional = stockPriceRepository.findById(symbol);
+            if (optional.isEmpty()) return false;
+
+            StockPrice entity = optional.get();
+
+            List<LocalDate> dates = new ArrayList<>(Arrays.asList(entity.getTradeDates()));
+            List<Double> opens = new ArrayList<>(Arrays.asList(entity.getOpen()));
+            List<Double> highs = new ArrayList<>(Arrays.asList(entity.getHigh()));
+            List<Double> lows = new ArrayList<>(Arrays.asList(entity.getLow()));
+            List<Double> closes = new ArrayList<>(Arrays.asList(entity.getClose()));
+            List<Double> volumes = new ArrayList<>(Arrays.asList(entity.getVolume()));
+
+            int lastIndex = dates.size() - 1;
+
+            if (!dates.isEmpty() && dates.get(lastIndex).equals(todayDate)) {
+
+                highs.set(lastIndex, Math.max(highs.get(lastIndex), high));
+                lows.set(lastIndex, Math.min(lows.get(lastIndex), low));
+                closes.set(lastIndex, close);
+                volumes.set(lastIndex, volume);
+
+            } else {
+                dates.add(todayDate);
+                opens.add(open);
+                highs.add(high);
+                lows.add(low);
+                closes.add(close);
+                volumes.add(volume);
+            }
+
+            entity.setTradeDates(dates.toArray(new LocalDate[0]));
+            entity.setOpen(opens.toArray(new Double[0]));
+            entity.setHigh(highs.toArray(new Double[0]));
+            entity.setLow(lows.toArray(new Double[0]));
+            entity.setClose(closes.toArray(new Double[0]));
+            entity.setVolume(volumes.toArray(new Double[0]));
+
+            stockPriceRepository.save(entity);
+
+            Analytics analytics = analyticsRepository
+                    .findById(symbol)
+                    .orElseGet(() -> {
+                        Analytics a = new Analytics();
+                        a.setSymbol(symbol);
+                        return a;
+                    });
+
+            analytics.setClosePrice(close);
+            analytics.setVolume(volume);
+            analytics.setUpdatedAt(LocalDateTime.now());
+
+            analyticsRepository.save(analytics);
+
+            return true;
+
+        } catch (Exception e) {
+            System.out.println("Intraday update failed for " + symbol + ": " + e.getMessage());
+            return false;
         }
     }
 
-    @Transactional
-    private void updateSymbolPrice(Map<String, String> quote) {
-
-        String symbol = quote.get("symbol");
-
-        Double price = parseDouble(quote.get("price"));
-        Double volume = parseDouble(quote.get("volume"));
-
-        if (price == null) return;
-
-        LocalDate today = LocalDate.now();
-
-    /* =====================================================
-       1️⃣ UPDATE STOCK PRICE TABLE (ARRAY STORAGE)
-    ===================================================== */
-
-        Optional<StockPrice> optional = stockPriceRepository.findById(symbol);
-
-        if (optional.isEmpty()) {
-            return;
-        }
-
-        StockPrice entity = optional.get();
-
-        List<LocalDate> dates =
-                new ArrayList<>(Arrays.asList(entity.getTradeDates()));
-
-        List<Double> opens =
-                new ArrayList<>(Arrays.asList(entity.getOpen()));
-
-        List<Double> highs =
-                new ArrayList<>(Arrays.asList(entity.getHigh()));
-
-        List<Double> lows =
-                new ArrayList<>(Arrays.asList(entity.getLow()));
-
-        List<Double> closes =
-                new ArrayList<>(Arrays.asList(entity.getClose()));
-
-        List<Double> volumes =
-                new ArrayList<>(Arrays.asList(entity.getVolume()));
-
-        int index = dates.indexOf(today);
-
-        if (index >= 0) {
-            // ✅ Update existing today record
-            closes.set(index, price);
-            highs.set(index, Math.max(highs.get(index), price));
-            lows.set(index, Math.min(lows.get(index), price));
-            volumes.set(index, volume);
-
-        } else {
-            // ✅ Append new day
-            dates.add(today);
-            opens.add(price);
-            highs.add(price);
-            lows.add(price);
-            closes.add(price);
-            volumes.add(volume);
-        }
-
-        entity.setTradeDates(dates.toArray(new LocalDate[0]));
-        entity.setOpen(opens.toArray(new Double[0]));
-        entity.setHigh(highs.toArray(new Double[0]));
-        entity.setLow(lows.toArray(new Double[0]));
-        entity.setClose(closes.toArray(new Double[0]));
-        entity.setVolume(volumes.toArray(new Double[0]));
-
-        stockPriceRepository.save(entity);
 
 
-    /* =====================================================
-       2️⃣ UPDATE ANALYTICS TABLE (REALTIME SNAPSHOT)
-    ===================================================== */
 
-        Analytics analytics = analyticsRepository
-                .findById(symbol)
-                .orElseGet(() -> {
-                    Analytics a = new Analytics();
-                    a.setSymbol(symbol);
-                    return a;
-                });
 
-        analytics.setClosePrice(price);
-        analytics.setVolume(volume);
-        analytics.setPreviousClose(parseDouble(quote.get("previous_close")));
-        analytics.setChangeAmount(parseDouble(quote.get("change")));
-        analytics.setChangePercent(parseDouble(quote.get("change_percent")));
 
-        analytics.setExtendedHoursPrice(parseDouble(quote.get("extended_hours_quote")));
-        analytics.setExtendedHoursChange(parseDouble(quote.get("extended_hours_change")));
-        analytics.setExtendedHoursChangePercent(parseDouble(quote.get("extended_hours_change_percent")));
 
-        analytics.setUpdatedAt(LocalDateTime.now());
-
-        analyticsRepository.save(analytics);
-    }
-
-    private Double parseDouble(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        return Double.valueOf(value);
-    }
 
 
 

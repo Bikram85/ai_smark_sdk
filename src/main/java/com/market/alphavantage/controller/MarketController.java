@@ -30,7 +30,8 @@ public class MarketController {
 
     @GetMapping("/load-prices")
     public String loadPrices() {
-        service.loadDailyPrices();
+       // service.loadDailyPrices();
+        service.fetchBulkIntraday();
         return "Prices loaded";
     }
 
