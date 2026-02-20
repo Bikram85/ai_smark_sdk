@@ -1,5 +1,7 @@
 package com.market.alphavantage.service.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.market.alphavantage.dto.FxDailyDTO;
 import com.market.alphavantage.entity.FxDaily;
 import com.market.alphavantage.repository.FxDailyRepository;
@@ -13,10 +15,7 @@ import org.springframework.web.client.RestTemplate;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -113,6 +112,90 @@ public class FxDailyServiceImpl implements FxDailyService {
 
         } catch (Exception ex) {
             logError("Failed to fetch FX daily for " + fromSymbol + " -> " + toSymbol
+                    + ". Reason: " + ex.getMessage());
+        }
+    }
+
+    public void fetchAndUpdateFxIntraday(String fromSymbol, String toSymbol) {
+
+        try {
+
+            String url = baseUrl
+                    + "?function=FX_INTRADAY"
+                    + "&from_symbol=" + fromSymbol.toUpperCase()
+                    + "&to_symbol=" + toSymbol.toUpperCase()
+                    + "&interval=5min"
+                    + "&apikey=" + apiKey;
+
+            String response = restTemplate.getForObject(url, String.class);
+            JsonNode root = new ObjectMapper().readTree(response);
+
+            // 🔥 API limit protection
+            if (root.has("Note") || root.has("Error Message")) {
+                logError("API limit hit for FX intraday " + fromSymbol);
+                return;
+            }
+
+            JsonNode meta = root.get("Meta Data");
+            JsonNode series = root.get("Time Series FX (5min)");
+
+            if (meta == null || series == null) return;
+
+            String latestTimestamp = meta.get("4. Last Refreshed").asText();
+            JsonNode candle = series.get(latestTimestamp);
+            if (candle == null) return;
+
+            double open = parseDouble(candle.get("1. open").asText());
+            double high = parseDouble(candle.get("2. high").asText());
+            double low = parseDouble(candle.get("3. low").asText());
+            double close = parseDouble(candle.get("4. close").asText());
+
+            LocalDate today = LocalDate.parse(latestTimestamp.substring(0, 10));
+
+            String id = fromSymbol.toUpperCase() + "_" + toSymbol.toUpperCase();
+            Optional<FxDaily> optional = repository.findById(id);
+            if (optional.isEmpty()) return;
+
+            FxDaily entity = optional.get();
+
+            List<LocalDate> dates = new ArrayList<>(Arrays.asList(entity.getTradeDate()));
+            List<Double> opens = new ArrayList<>(Arrays.asList(entity.getOpen()));
+            List<Double> highs = new ArrayList<>(Arrays.asList(entity.getHigh()));
+            List<Double> lows = new ArrayList<>(Arrays.asList(entity.getLow()));
+            List<Double> closes = new ArrayList<>(Arrays.asList(entity.getClose()));
+
+            int lastIndex = dates.size() - 1;
+
+            // ✅ If today exists → UPDATE
+            if (!dates.isEmpty() && dates.get(lastIndex).equals(today)) {
+
+                highs.set(lastIndex, Math.max(highs.get(lastIndex), high));
+                lows.set(lastIndex, Math.min(lows.get(lastIndex), low));
+                closes.set(lastIndex, close);
+
+            }
+            // ✅ If new day → append
+            else {
+
+                dates.add(today);
+                opens.add(open);
+                highs.add(high);
+                lows.add(low);
+                closes.add(close);
+            }
+
+            entity.setTradeDate(dates.toArray(new LocalDate[0]));
+            entity.setOpen(opens.toArray(new Double[0]));
+            entity.setHigh(highs.toArray(new Double[0]));
+            entity.setLow(lows.toArray(new Double[0]));
+            entity.setClose(closes.toArray(new Double[0]));
+
+            repository.save(entity);
+
+            logInfo("Updated FX intraday for " + id);
+
+        } catch (Exception ex) {
+            logError("Failed FX intraday for " + fromSymbol + " -> " + toSymbol
                     + ". Reason: " + ex.getMessage());
         }
     }

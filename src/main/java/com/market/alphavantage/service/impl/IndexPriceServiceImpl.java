@@ -43,7 +43,7 @@ public class IndexPriceServiceImpl {
             }
 
         }
-        captureIndex();
+       // captureIndex();
         List<IndexPrice> entities = repository.findAll();
         List<IndexPriceDTO> result = new ArrayList<>();
         for (IndexPrice e : entities) {
@@ -116,6 +116,94 @@ public class IndexPriceServiceImpl {
 
         } catch (Exception e) {
             throw new RuntimeException("Failed fetching index data for " + idx.getSymbol(), e);
+        }
+    }
+
+    public void fetchAndUpdateIntraday(IndexConstants idx) {
+
+        try {
+
+            String url = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY"
+                    + "&symbol=" + idx.getSymbol()
+                    + "&interval=5min"
+                    + "&apikey=" + apiKey;
+
+            String response = restTemplate.getForObject(url, String.class);
+            JsonNode root = mapper.readTree(response);
+
+            // 🔥 Check API limit error
+            if (root.has("Note") || root.has("Error Message")) {
+                System.out.println("API limit hit or error for " + idx.getSymbol());
+                return;
+            }
+
+            JsonNode meta = root.get("Meta Data");
+            JsonNode series = root.get("Time Series (5min)");
+
+            if (meta == null || series == null) return;
+
+            // ✅ Get exact latest timestamp safely
+            String latestTimestamp = meta.get("3. Last Refreshed").asText();
+
+            JsonNode candle = series.get(latestTimestamp);
+            if (candle == null) return;
+
+            double open = candle.get("1. open").asDouble();
+            double high = candle.get("2. high").asDouble();
+            double low = candle.get("3. low").asDouble();
+            double close = candle.get("4. close").asDouble();
+            long volume = candle.get("5. volume").asLong();
+
+            String todayDate = latestTimestamp.substring(0, 10);
+
+            Optional<IndexPrice> optional = repository.findById(idx.getSymbol());
+            if (optional.isEmpty()) return;
+
+            IndexPrice entity = optional.get();
+
+            List<String> dates = new ArrayList<>(Arrays.asList(entity.getDates()));
+            List<Double> opens = new ArrayList<>(Arrays.asList(entity.getOpen()));
+            List<Double> highs = new ArrayList<>(Arrays.asList(entity.getHigh()));
+            List<Double> lows = new ArrayList<>(Arrays.asList(entity.getLow()));
+            List<Double> closes = new ArrayList<>(Arrays.asList(entity.getClose()));
+            List<Long> volumes = new ArrayList<>(Arrays.asList(entity.getVolume()));
+
+            int lastIndex = dates.size() - 1;
+
+            // ✅ If today exists → update
+            if (!dates.isEmpty() && dates.get(lastIndex).equals(todayDate)) {
+
+                highs.set(lastIndex, Math.max(highs.get(lastIndex), high));
+                lows.set(lastIndex, Math.min(lows.get(lastIndex), low));
+                closes.set(lastIndex, close);
+
+                // ⚠️ Do NOT blindly add full volume (intraday is cumulative)
+                volumes.set(lastIndex, volume);
+
+            } else {
+
+                // Append new trading day
+                dates.add(todayDate);
+                opens.add(open);
+                highs.add(high);
+                lows.add(low);
+                closes.add(close);
+                volumes.add(volume);
+            }
+
+            entity.setDates(dates.toArray(new String[0]));
+            entity.setOpen(opens.toArray(new Double[0]));
+            entity.setHigh(highs.toArray(new Double[0]));
+            entity.setLow(lows.toArray(new Double[0]));
+            entity.setClose(closes.toArray(new Double[0]));
+            entity.setVolume(volumes.toArray(new Long[0]));
+
+            repository.save(entity);
+
+            System.out.println("Updated intraday for " + idx.getSymbol());
+
+        } catch (Exception e) {
+            System.out.println("Intraday update failed: " + e.getMessage());
         }
     }
 

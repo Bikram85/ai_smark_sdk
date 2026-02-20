@@ -1,5 +1,7 @@
 package com.market.alphavantage.service.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.market.alphavantage.dto.DigitalCurrencyDailyDTO;
 import com.market.alphavantage.entity.DigitalCurrencyDaily;
 import com.market.alphavantage.repository.DigitalCurrencyDailyRepository;
@@ -117,6 +119,99 @@ public class DigitalCurrencyDailyServiceImpl implements DigitalCurrencyDailyServ
         }
     }
 
+
+    public void fetchAndUpdateCryptoIntraday(String symbol, String market) {
+
+        try {
+
+            String url = baseUrl
+                    + "?function=CRYPTO_INTRADAY"
+                    + "&symbol=" + symbol.toUpperCase()
+                    + "&market=" + market.toUpperCase()
+                    + "&interval=5min"
+                    + "&apikey=" + apiKey;
+
+            String response = restTemplate.getForObject(url, String.class);
+            JsonNode root = new ObjectMapper().readTree(response);
+
+            // 🔥 API limit protection
+            if (root.has("Note") || root.has("Error Message")) {
+                logError("API limit hit for crypto intraday " + symbol);
+                return;
+            }
+
+            JsonNode meta = root.get("Meta Data");
+            JsonNode series = root.get("Time Series Crypto (5min)");
+
+            if (meta == null || series == null) return;
+
+            String latestTimestamp = meta.get("5. Last Refreshed").asText();
+            JsonNode candle = series.get(latestTimestamp);
+            if (candle == null) return;
+
+            double open = candle.get("1. open").asDouble();
+            double high = candle.get("2. high").asDouble();
+            double low = candle.get("3. low").asDouble();
+            double close = candle.get("4. close").asDouble();
+            double volume = candle.get("5. volume").asDouble();
+
+            LocalDate today = LocalDate.parse(latestTimestamp.substring(0, 10));
+
+            String id = symbol.toUpperCase() + "_" + market.toUpperCase();
+            Optional<DigitalCurrencyDaily> optional = repository.findById(id);
+            if (optional.isEmpty()) return;
+
+            DigitalCurrencyDaily entity = optional.get();
+
+            List<LocalDate> dates = new ArrayList<>(Arrays.asList(entity.getTradeDate()));
+            List<Double> opens = new ArrayList<>(Arrays.asList(entity.getOpen()));
+            List<Double> highs = new ArrayList<>(Arrays.asList(entity.getHigh()));
+            List<Double> lows = new ArrayList<>(Arrays.asList(entity.getLow()));
+            List<Double> closes = new ArrayList<>(Arrays.asList(entity.getClose()));
+            List<Double> volumes = new ArrayList<>(Arrays.asList(entity.getVolume()));
+            List<Double> marketCaps = new ArrayList<>(Arrays.asList(entity.getMarketCap()));
+
+            int lastIndex = dates.size() - 1;
+
+            // ✅ If today's row exists → UPDATE
+            if (!dates.isEmpty() && dates.get(lastIndex).equals(today)) {
+
+                highs.set(lastIndex, Math.max(highs.get(lastIndex), high));
+                lows.set(lastIndex, Math.min(lows.get(lastIndex), low));
+                closes.set(lastIndex, close);
+
+                // Volume: choose strategy
+                volumes.set(lastIndex, volumes.get(lastIndex) + volume);
+
+            } else {
+
+                // Append new trading day
+                dates.add(today);
+                opens.add(open);
+                highs.add(high);
+                lows.add(low);
+                closes.add(close);
+                volumes.add(volume);
+                marketCaps.add(0.0); // intraday doesn't return market cap
+            }
+
+            entity.setTradeDate(dates.toArray(new LocalDate[0]));
+            entity.setOpen(opens.toArray(new Double[0]));
+            entity.setHigh(highs.toArray(new Double[0]));
+            entity.setLow(lows.toArray(new Double[0]));
+            entity.setClose(closes.toArray(new Double[0]));
+            entity.setVolume(volumes.toArray(new Double[0]));
+            entity.setMarketCap(marketCaps.toArray(new Double[0]));
+
+            repository.save(entity);
+
+            logInfo("Updated crypto intraday for " + id);
+
+        } catch (Exception ex) {
+            logError("Failed crypto intraday for " + symbol + " -> " + market
+                    + ". Reason: " + ex.getMessage());
+        }
+    }
     /** Parse string to double, remove commas and round to 2 decimals */
     private Double parseDouble(String val) {
         try {

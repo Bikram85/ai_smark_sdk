@@ -1,9 +1,11 @@
 package com.market.alphavantage.service.impl;
 
 import com.market.alphavantage.dto.ETFPriceDTO;
+import com.market.alphavantage.entity.Analytics;
 import com.market.alphavantage.entity.ETFPrice;
 import com.market.alphavantage.entity.StockPrice;
 import com.market.alphavantage.entity.Symbol;
+import com.market.alphavantage.repository.AnalyticsRepository;
 import com.market.alphavantage.repository.ETFPriceRepository;
 import com.market.alphavantage.repository.StockPriceRepository;
 import com.market.alphavantage.repository.SymbolRepository;
@@ -11,10 +13,12 @@ import com.market.alphavantage.service.MarketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import javax.sound.midi.Soundbank;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,6 +33,7 @@ public class MarketServiceImpl implements MarketService {
     private final SymbolRepository symbolRepo;
     private final StockPriceRepository stockPriceRepository;
     private final ETFPriceRepository etfPriceRepository;
+    private final AnalyticsRepository analyticsRepository;
 
 
     @Value("${alphavantage.baseUrl}")
@@ -189,7 +194,24 @@ public class MarketServiceImpl implements MarketService {
     }
 
 
+    public void fetchBulkIntraday() {
 
+        List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
+
+        List<String> symbols = stocks.stream()
+                .map(Symbol::getSymbol)
+                .toList();
+
+        int batchSize = 100;
+
+        for (int i = 0; i < symbols.size(); i += batchSize) {
+
+            List<String> batch = symbols.subList(i,
+                    Math.min(i + batchSize, symbols.size()));
+
+            processBulkBatch(batch);
+        }
+    }
 
     private void processSymbol(String symbol,
                                String type,
@@ -294,6 +316,134 @@ public class MarketServiceImpl implements MarketService {
         }
     }
 
+    private void processBulkBatch(List<String> batch) {
+
+        String joinedSymbols = String.join(",", batch);
+
+        String url = baseUrl
+                + "?function=REALTIME_BULK_QUOTES"
+                + "&symbol=" + joinedSymbols
+                + "&apikey=" + apiKey;
+
+        Map response = restTemplate.getForObject(url, Map.class);
+
+        List<Map<String, String>> quotes =
+                (List<Map<String, String>>) response.get("data");
+
+        if (quotes == null) {
+            System.out.println("Bulk response empty");
+            return;
+        }
+
+        for (Map<String, String> quote : quotes) {
+            updateSymbolPrice(quote);
+        }
+    }
+
+    @Transactional
+    private void updateSymbolPrice(Map<String, String> quote) {
+
+        String symbol = quote.get("symbol");
+
+        Double price = parseDouble(quote.get("price"));
+        Double volume = parseDouble(quote.get("volume"));
+
+        if (price == null) return;
+
+        LocalDate today = LocalDate.now();
+
+    /* =====================================================
+       1️⃣ UPDATE STOCK PRICE TABLE (ARRAY STORAGE)
+    ===================================================== */
+
+        Optional<StockPrice> optional = stockPriceRepository.findById(symbol);
+
+        if (optional.isEmpty()) {
+            return;
+        }
+
+        StockPrice entity = optional.get();
+
+        List<LocalDate> dates =
+                new ArrayList<>(Arrays.asList(entity.getTradeDates()));
+
+        List<Double> opens =
+                new ArrayList<>(Arrays.asList(entity.getOpen()));
+
+        List<Double> highs =
+                new ArrayList<>(Arrays.asList(entity.getHigh()));
+
+        List<Double> lows =
+                new ArrayList<>(Arrays.asList(entity.getLow()));
+
+        List<Double> closes =
+                new ArrayList<>(Arrays.asList(entity.getClose()));
+
+        List<Double> volumes =
+                new ArrayList<>(Arrays.asList(entity.getVolume()));
+
+        int index = dates.indexOf(today);
+
+        if (index >= 0) {
+            // ✅ Update existing today record
+            closes.set(index, price);
+            highs.set(index, Math.max(highs.get(index), price));
+            lows.set(index, Math.min(lows.get(index), price));
+            volumes.set(index, volume);
+
+        } else {
+            // ✅ Append new day
+            dates.add(today);
+            opens.add(price);
+            highs.add(price);
+            lows.add(price);
+            closes.add(price);
+            volumes.add(volume);
+        }
+
+        entity.setTradeDates(dates.toArray(new LocalDate[0]));
+        entity.setOpen(opens.toArray(new Double[0]));
+        entity.setHigh(highs.toArray(new Double[0]));
+        entity.setLow(lows.toArray(new Double[0]));
+        entity.setClose(closes.toArray(new Double[0]));
+        entity.setVolume(volumes.toArray(new Double[0]));
+
+        stockPriceRepository.save(entity);
+
+
+    /* =====================================================
+       2️⃣ UPDATE ANALYTICS TABLE (REALTIME SNAPSHOT)
+    ===================================================== */
+
+        Analytics analytics = analyticsRepository
+                .findById(symbol)
+                .orElseGet(() -> {
+                    Analytics a = new Analytics();
+                    a.setSymbol(symbol);
+                    return a;
+                });
+
+        analytics.setClosePrice(price);
+        analytics.setVolume(volume);
+        analytics.setPreviousClose(parseDouble(quote.get("previous_close")));
+        analytics.setChangeAmount(parseDouble(quote.get("change")));
+        analytics.setChangePercent(parseDouble(quote.get("change_percent")));
+
+        analytics.setExtendedHoursPrice(parseDouble(quote.get("extended_hours_quote")));
+        analytics.setExtendedHoursChange(parseDouble(quote.get("extended_hours_change")));
+        analytics.setExtendedHoursChangePercent(parseDouble(quote.get("extended_hours_change_percent")));
+
+        analytics.setUpdatedAt(LocalDateTime.now());
+
+        analyticsRepository.save(analytics);
+    }
+
+    private Double parseDouble(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return Double.valueOf(value);
+    }
 
 
 

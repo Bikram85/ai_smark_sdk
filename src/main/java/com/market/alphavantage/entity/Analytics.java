@@ -22,6 +22,17 @@ public class Analytics {
     /* ===== Volume ===== */
     private Double avgVolumeWeek;
 
+    /* ===== REALTIME PRICE ===== */
+    private Double closePrice;
+    private Double volume;
+    private Double previousClose;
+    private Double changeAmount;
+    private Double changePercent;
+
+    private Double extendedHoursPrice;
+    private Double extendedHoursChange;
+    private Double extendedHoursChangePercent;
+
     /* ===== Options ===== */
     private Double support;
     private Double resistance;
