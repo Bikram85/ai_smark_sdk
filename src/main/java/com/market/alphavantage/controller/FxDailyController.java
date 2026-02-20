@@ -24,25 +24,13 @@ public class FxDailyController {
     }
 
     @GetMapping("/get")
-    public ResponseEntity<FxDailyDTO> get(@RequestParam String fromSymbol,
-                                          @RequestParam String toSymbol) {
-        FxDailyDTO dto = service.getFxDaily(fromSymbol, toSymbol);
-        if (dto == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(dto);
-    }
-
-    @GetMapping("/get/{months}")
-    public ResponseEntity<List<FxDailyDTO>> getByMonths(@PathVariable int months) {
+    public ResponseEntity<List<FxDailyDTO>> getByMonths() {
 
         List<FxDailyDTO> dtos;
-
-        dtos = service.getFxDailyByMonths(months); // filter by last 'months'
-
-
+        dtos = service.getFxDailyByMonths(); // filter by last 'months'
         if (dtos.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-
         return ResponseEntity.ok(dtos);
     }
 }

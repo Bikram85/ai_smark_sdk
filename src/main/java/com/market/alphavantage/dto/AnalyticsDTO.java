@@ -28,6 +28,16 @@ public class AnalyticsDTO {
     private Double pcr;
     private String bias;
 
+    /* ===== REALTIME PRICE ===== */
+    private Double closePrice;
+    private Double volume;
+    private Double previousClose;
+    private Double changeAmount;
+    private Double changePercent;
+    private Double extendedHoursPrice;
+    private Double extendedHoursChange;
+    private Double extendedHoursChangePercent;
+
     /* Company */
     private String sector;
     private String industry;

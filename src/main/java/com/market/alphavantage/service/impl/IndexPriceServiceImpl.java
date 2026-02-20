@@ -32,7 +32,7 @@ public class IndexPriceServiceImpl {
     /**
      * Fetches all popular indices listed in IndexConstants and saves in DB.
      */
-    public List<IndexPriceDTO> fetchAllPopularIndices() {
+    public void fetchAllPopularIndices() {
         for (IndexConstants idx : IndexConstants.POPULAR_INDICES) {
             try {
                 System.out.println("Fetching: " + idx.getSymbol() + " (" + idx.getCountry() + ")");
@@ -43,13 +43,21 @@ public class IndexPriceServiceImpl {
             }
 
         }
-       // captureIndex();
-        List<IndexPrice> entities = repository.findAll();
-        List<IndexPriceDTO> result = new ArrayList<>();
-        for (IndexPrice e : entities) {
-            result.add(toDTO(e));
+
+    }
+
+    public void fetchAllPopularIndicesIntraday() {
+        for (IndexConstants idx : IndexConstants.POPULAR_INDICES) {
+            try {
+                System.out.println("Fetching: " + idx.getSymbol() + " (" + idx.getCountry() + ")");
+                fetchAndUpdateIntraday(idx);
+            } catch (Exception e) {
+                System.err.println("Failed fetching index: " + idx.getSymbol());
+                e.printStackTrace();
+            }
+
         }
-        return result;
+
     }
 
     /**
@@ -120,6 +128,7 @@ public class IndexPriceServiceImpl {
     }
 
     public void fetchAndUpdateIntraday(IndexConstants idx) {
+
 
         try {
 
@@ -210,10 +219,17 @@ public class IndexPriceServiceImpl {
     /**
      * Get saved index from DB.
      */
-    public IndexPriceDTO getFromDB(String symbol) {
-        IndexPrice entity = repository.findById(symbol)
-                .orElseThrow(() -> new RuntimeException("Index not found: " + symbol));
-        return toDTO(entity);
+    public List<IndexPriceDTO> getFromDB() {
+
+        List<IndexPrice> entities = repository.findAll();
+
+        if (entities.isEmpty()) {
+            throw new RuntimeException("No index data found");
+        }
+
+        return entities.stream()
+                .map(this::toDTO)
+                .toList();
     }
 
     /**

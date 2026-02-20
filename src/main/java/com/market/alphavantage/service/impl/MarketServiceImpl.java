@@ -94,6 +94,27 @@ public class MarketServiceImpl implements MarketService {
         System.out.println("Failed        : " + failed.get());
     }
 
+    @Override
+    public void fetchBulkIntraday() {
+
+        List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
+
+        List<String> symbols = stocks.stream()
+                .map(Symbol::getSymbol)
+                .toList();
+
+        int batchSize = 100;
+
+        for (int i = 0; i < symbols.size(); i += batchSize) {
+
+            List<String> batch = symbols.subList(i,
+                    Math.min(i + batchSize, symbols.size()));
+
+            processBulkBatch(batch);
+        }
+    }
+
+
 
     @Override
     public List<ETFPriceDTO> retrieveIndexData(int months) {
@@ -194,24 +215,7 @@ public class MarketServiceImpl implements MarketService {
     }
 
 
-    public void fetchBulkIntraday() {
 
-        List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
-
-        List<String> symbols = stocks.stream()
-                .map(Symbol::getSymbol)
-                .toList();
-
-        int batchSize = 100;
-
-        for (int i = 0; i < symbols.size(); i += batchSize) {
-
-            List<String> batch = symbols.subList(i,
-                    Math.min(i + batchSize, symbols.size()));
-
-            processBulkBatch(batch);
-        }
-    }
 
     private void processSymbol(String symbol,
                                String type,
@@ -239,6 +243,7 @@ public class MarketServiceImpl implements MarketService {
                     + " Reason: " + ex.getMessage());
         }
     }
+
 
 
 
@@ -317,6 +322,11 @@ public class MarketServiceImpl implements MarketService {
     }
 
     private void processBulkBatch(List<String> batch) {
+        try {
+            TimeUnit.SECONDS.sleep(1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         String joinedSymbols = String.join(",", batch);
 

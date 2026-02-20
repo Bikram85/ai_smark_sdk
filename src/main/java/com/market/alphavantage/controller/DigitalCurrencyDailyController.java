@@ -22,22 +22,13 @@ public class DigitalCurrencyDailyController {
         return ResponseEntity.ok("Digital currency daily loaded for " );
     }
 
-    @GetMapping("/get/{months}")
-    public ResponseEntity<List<DigitalCurrencyDailyDTO>> getByMonths(
-           @PathVariable int months) {
+    @GetMapping("/get")
+    public ResponseEntity<List<DigitalCurrencyDailyDTO>> getByMonths() {
 
-        List<DigitalCurrencyDailyDTO> dtos;
-
-        if (months > 0) {
-            dtos = service.getDigitalCurrencyByMonths(months);
-        } else {
-            dtos = service.getAllDigitalCurrencyDaily();
-        }
-
+        List<DigitalCurrencyDailyDTO> dtos = service.getAllDigitalCurrencyDaily();
         if (dtos.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-
         return ResponseEntity.ok(dtos);
     }
 }

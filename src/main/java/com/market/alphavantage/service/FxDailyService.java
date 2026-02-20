@@ -7,7 +7,6 @@ import java.util.List;
 public interface FxDailyService {
 
     void loadFxDaily();
-
-    FxDailyDTO getFxDaily(String fromSymbol, String toSymbol);
-    List<FxDailyDTO> getFxDailyByMonths(int months);
+    void loadFxIntraday();
+    List<FxDailyDTO> getFxDailyByMonths();
 }

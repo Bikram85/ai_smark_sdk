@@ -1,6 +1,7 @@
 package com.market.alphavantage.scheduler;
 
 import com.market.alphavantage.service.*;
+import com.market.alphavantage.service.impl.IndexPriceServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableScheduling
@@ -37,6 +39,8 @@ public class DataScheduler {
     private final RealtimeOptionService realtimeOptionService;
     private final SharesOutstandingService sharesOutstandingService;
     private final TopGainersLosersService topGainersLosersService;
+    private final DigitalCurrencyDailyService service;
+    private final IndexPriceServiceImpl indexPriceService;
 
     @Scheduled(cron = "0 04 18 * * SAT")
     public void initDataSet() throws ParseException, IOException {
@@ -71,5 +75,20 @@ public class DataScheduler {
         ipoCalendarService.loadIpoCalendar();
 
 
+    }
+
+    @Scheduled(cron = "0 * 7-19 * * 1-5") // every minute, 7AM-7PM, Mon-Fri
+    public void intradayUpdate() throws ParseException, IOException {
+        service.loadDigitalCurrencyIntraday();
+        fxDailyService.loadFxIntraday();
+        indexPriceService.fetchAllPopularIndicesIntraday();
+
+        try {
+            TimeUnit.SECONDS.sleep(1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        marketService.fetchBulkIntraday();
     }
 }

@@ -76,10 +76,23 @@ public class AnalyticsController {
                 .hedgeFundAlpha(a.getHedgeFundAlpha())
                 .goodEntry(a.getGoodEntry())
                 .updatedAt(a.getUpdatedAt())
+                /* ===== REALTIME PRICE ===== */
+
+                // ===== New Intraday Fields =====
+                .closePrice(a.getClosePrice())
+                .volume(a.getVolume())
+                .previousClose(a.getPreviousClose())
+                .changeAmount(a.getChangeAmount())
+                .changePercent(a.getChangePercent())
+                .extendedHoursPrice(a.getExtendedHoursPrice())
+                .extendedHoursChange(a.getExtendedHoursChange())
+                .extendedHoursChangePercent(a.getExtendedHoursChangePercent())
+
                 .build()
         ).toList();
 
         return rows;
+
     }
 
     @GetMapping("/filters")

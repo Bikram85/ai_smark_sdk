@@ -46,6 +46,11 @@ public class FxDailyServiceImpl implements FxDailyService {
         FX_SYMBOLS.forEach(symbol -> fetchDetails(symbol, BASE_CURRENCY));
     }
 
+    @Override
+    public void loadFxIntraday() {
+        FX_SYMBOLS.forEach(symbol -> fetchAndUpdateFxIntraday(symbol, BASE_CURRENCY));
+    }
+
     private void fetchDetails(String fromSymbol, String toSymbol) {
         String url = baseUrl
                 + "?function=FX_DAILY"
@@ -201,34 +206,10 @@ public class FxDailyServiceImpl implements FxDailyService {
     }
 
 
-    @Override
-    public FxDailyDTO getFxDaily(String fromSymbol, String toSymbol) {
-        String id = fromSymbol.toUpperCase() + "_" + toSymbol.toUpperCase();
-        FxDaily e = repository.findById(id).orElse(null);
-        if (e == null) {
-            logInfo("No FX data found for " + fromSymbol + " -> " + toSymbol);
-            return null;
-        }
-
-        FxDailyDTO dto = new FxDailyDTO();
-        dto.setId(e.getId());
-        dto.setFromSymbol(e.getFromSymbol());
-        dto.setToSymbol(e.getToSymbol());
-
-        // Convert arrays to lists for DTO
-        dto.setTradeDate(e.getTradeDate() != null ? List.of(e.getTradeDate()) : List.of());
-        dto.setOpen(e.getOpen() != null ? List.of(e.getOpen()) : List.of());
-        dto.setHigh(e.getHigh() != null ? List.of(e.getHigh()) : List.of());
-        dto.setLow(e.getLow() != null ? List.of(e.getLow()) : List.of());
-        dto.setClose(e.getClose() != null ? List.of(e.getClose()) : List.of());
-
-        logInfo("FX data retrieved for " + fromSymbol + " -> " + toSymbol);
-        return dto;
-    }
 
     @Override
-    public List<FxDailyDTO> getFxDailyByMonths(int months) {
-        LocalDate startDate = months > 0 ? LocalDate.now().minusMonths(months) : null;
+    public List<FxDailyDTO> getFxDailyByMonths() {
+        LocalDate startDate =  null;
 
         return repository.findAll().stream()
                 .map(fx -> {

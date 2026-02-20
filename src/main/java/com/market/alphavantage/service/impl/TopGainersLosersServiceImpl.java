@@ -59,7 +59,7 @@ public class TopGainersLosersServiceImpl implements TopGainersLosersService {
     }
 
     /**
-     * Save each symbol as a separate row
+     * Save each symbol as a separate row (Upsert to avoid duplicates)
      */
     private void saveList(String id,
                           List<Map<String, String>> list,
@@ -70,13 +70,15 @@ public class TopGainersLosersServiceImpl implements TopGainersLosersService {
             return;
         }
 
-        // Optionally: delete existing rows for this id before inserting fresh
-        repository.deleteAll(repository.findById(id));
-
         for (Map<String, String> item : list) {
-            TopGainersLosers entity = new TopGainersLosers();
+            String symbol = item.get("ticker");
+
+            // ✅ Upsert: update if exists, create if missing
+            TopGainersLosers entity = repository.findBySymbol(symbol)
+                    .orElseGet(TopGainersLosers::new);
+
             entity.setId(id); // "gainer" or "loser"
-            entity.setSymbol(item.get("ticker"));
+            entity.setSymbol(symbol);
             entity.setName(item.getOrDefault("name", ""));
             entity.setPrice(parseDouble(item.get("price")));
             entity.setChange(parseDouble(item.get("change_amount")));
@@ -85,7 +87,7 @@ public class TopGainersLosersServiceImpl implements TopGainersLosersService {
 
             // ===== MARKET CAP CATEGORY =====
             try {
-                Optional<CompanyOverview> coOpt = companyRepo.findById(entity.getSymbol());
+                Optional<CompanyOverview> coOpt = companyRepo.findById(symbol);
                 Long marketCap = coOpt.map(CompanyOverview::getMarketCapitalization).orElse(null);
                 entity.setMarketCapCategory(determineMarketCapCategory(marketCap));
             } catch (Exception ex) {
@@ -94,7 +96,6 @@ public class TopGainersLosersServiceImpl implements TopGainersLosersService {
 
             repository.save(entity);
         }
-
 
         logInfo("Saved " + type + " with id: " + id + ", entries: " + list.size());
     }
@@ -123,7 +124,6 @@ public class TopGainersLosersServiceImpl implements TopGainersLosersService {
     }
 
     /* ===== Helpers ===== */
-
     private Double parseDouble(String val) {
         try {
             return val == null || val.isBlank() ? 0.0 : Double.valueOf(val);
@@ -147,6 +147,7 @@ public class TopGainersLosersServiceImpl implements TopGainersLosersService {
     private void logError(String msg) {
         System.err.println("[" + LocalDateTime.now().format(formatter) + "] ERROR: " + msg);
     }
+
     private String determineMarketCapCategory(Long cap) {
         if (cap == null) return "Unknown";
         if (cap < 50_000_000) return "Nano Cap";
@@ -156,6 +157,4 @@ public class TopGainersLosersServiceImpl implements TopGainersLosersService {
         if (cap < 200_000_000_000L) return "Large Cap";
         return "Mega Cap";
     }
-
-
 }

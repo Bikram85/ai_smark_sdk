@@ -9,5 +9,6 @@ import java.util.List;
 public interface MarketService {
     void loadListingStatus();
     void loadDailyPrices();
+    void fetchBulkIntraday();
     List<ETFPriceDTO> retrieveIndexData(int months);
 }

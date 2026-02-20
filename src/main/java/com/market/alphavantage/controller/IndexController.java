@@ -18,15 +18,13 @@ public class IndexController {
     @Autowired
     IndexPriceServiceImpl indexPriceService;
 
-
-
     @GetMapping("/fetch")
-    public List<IndexPriceDTO> fetchAndSave() {
-         return indexPriceService.fetchAllPopularIndices();
+    public void fetchAndSave() {
+        indexPriceService.fetchAllPopularIndices();
     }
 
-    @GetMapping("/{symbol}")
-    public IndexPriceDTO getFromDB(@PathVariable String symbol) {
-        return indexPriceService.getFromDB(symbol);
+    @GetMapping("/get")
+    public List<IndexPriceDTO> getFromDB() {
+        return indexPriceService.getFromDB();
     }
 }

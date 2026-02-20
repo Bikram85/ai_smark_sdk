@@ -7,7 +7,7 @@ import java.util.List;
 public interface DigitalCurrencyDailyService {
 
     void loadDigitalCurrencyDaily();
-    List<DigitalCurrencyDailyDTO> getDigitalCurrencyByMonths(int months);
-
+    void loadDigitalCurrencyIntraday();
     List<DigitalCurrencyDailyDTO> getAllDigitalCurrencyDaily();
+
 }
