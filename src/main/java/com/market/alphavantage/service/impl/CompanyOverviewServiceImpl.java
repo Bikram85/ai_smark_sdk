@@ -49,7 +49,7 @@ public class CompanyOverviewServiceImpl implements CompanyOverviewService {
        // etfs.forEach(symbol -> processSymbol(symbol.getSymbol(), processed, success, failed, total));
 
         logInfo("\n===== SUMMARY =====");
-        logInfo("Total symbols : " + total);
+        logInfo("Total loadOverview symbols : " + total);
         logInfo("Success       : " + success.get());
         logInfo("Failed        : " + failed.get());
     }
@@ -65,11 +65,11 @@ public class CompanyOverviewServiceImpl implements CompanyOverviewService {
         try {
             fetchDetails(symbol);
             success.incrementAndGet();
-            logInfo("Processed " + current + "/" + total + " SUCCESS: " + symbol);
+            logInfo("Processed loadOverview " + current + "/" + total + " SUCCESS: " + symbol);
 
         } catch (Exception ex) {
             failed.incrementAndGet();
-            logInfo("Processed " + current + "/" + total + " FAILED: " + symbol + " Reason: " + ex.getMessage());
+            logInfo("Processed loadOverview " + current + "/" + total + " FAILED: " + symbol + " Reason: " + ex.getMessage());
         }
     }
 

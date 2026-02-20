@@ -77,7 +77,7 @@ public class DataScheduler {
 
     }
 
-    @Scheduled(cron = "0 * 7-19 * * 1-5") // every minute, 7AM-7PM, Mon-Fri
+    //@Scheduled(cron = "0 * 7-19 * * 1-5") // every minute, 7AM-7PM, Mon-Fri
     public void intradayUpdate() throws ParseException, IOException {
        // service.loadDigitalCurrencyIntraday();
        // fxDailyService.loadFxIntraday();
