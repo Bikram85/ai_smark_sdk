@@ -34,6 +34,7 @@ public class BalanceSheetServiceImpl implements BalanceSheetService {
     /* ================= LOAD ================= */
     @Override
     public void loadBalanceSheet() {
+        repository.deleteAll();
         List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
 
         AtomicInteger processed = new AtomicInteger();

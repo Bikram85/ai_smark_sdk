@@ -43,6 +43,7 @@ public class DigitalCurrencyDailyServiceImpl implements DigitalCurrencyDailyServ
 
     @Override
     public void loadDigitalCurrencyDaily() {
+        repository.deleteAll();
         CRYPTO_SYMBOLS.forEach(symbol -> fetchDetails(symbol, BASE_CURRENCY));
     }
 

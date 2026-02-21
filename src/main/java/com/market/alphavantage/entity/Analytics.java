@@ -86,7 +86,6 @@ public class Analytics {
     private Double gammaExposureScore;
     private Double volatilityScore;
     private Double liquidityScore;
-    private Double factorScore;
     private Double hedgeFundAlpha;
     private Boolean goodEntry;
 

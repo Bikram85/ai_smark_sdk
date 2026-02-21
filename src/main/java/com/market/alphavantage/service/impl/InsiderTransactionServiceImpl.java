@@ -38,6 +38,7 @@ public class InsiderTransactionServiceImpl implements InsiderTransactionService 
 
     @Override
     public void loadInsiderTransactions() {
+        repository.deleteAll();
         List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
         int total = stocks.size();
 

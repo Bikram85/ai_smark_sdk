@@ -55,6 +55,7 @@ public class MarketServiceImpl implements MarketService {
     // API 1: Listing status
     @Override
     public void loadListingStatus() {
+        symbolRepo.deleteAll();
         String url = baseUrl + "?function=LISTING_STATUS&&entitlement=delayed&apikey=" + apiKey;
         String csv = restTemplate.getForObject(url, String.class);
 
@@ -76,6 +77,7 @@ public class MarketServiceImpl implements MarketService {
     // API 2: Daily prices
     @Override
     public void loadDailyPrices() {
+        stockPriceRepository.deleteAll();
 
         List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
         List<Symbol> etfs = symbolRepo.findByAssetType("ETF");

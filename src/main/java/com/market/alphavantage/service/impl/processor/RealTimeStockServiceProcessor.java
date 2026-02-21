@@ -130,5 +130,39 @@ public class RealTimeStockServiceProcessor {
         }
     }
 
+    public double fetchCurrentPrice(String symbol) {
+        try {
+            TimeUnit.SECONDS.sleep(1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            String url = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE"
+                    + "&symbol=" + symbol
+                    + "&apikey=" + apiKey;
+
+            String response = restTemplate.getForObject(url, String.class);
+            JsonNode root = mapper.readTree(response);
+
+            // API limit or error check
+            if (root.has("Note") || root.has("Error Message")) {
+                System.out.println("API limit hit or error for " + symbol);
+                return 0.0;
+            }
+
+            JsonNode quote = root.get("Global Quote");
+            if (quote == null || quote.isEmpty()) return 0.0;
+
+            double close = quote.get("05. price").asDouble();
+            return close;
+
+
+        } catch (Exception e) {
+            System.out.println("Intraday update failed for " + symbol + ": " + e.getMessage());
+            return 0.0;
+        }
+    }
+
 
 }

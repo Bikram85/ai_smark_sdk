@@ -72,7 +72,6 @@ public class AnalyticsController {
                 .gammaExposureScore(a.getGammaExposureScore())
                 .volatilityScore(a.getVolatilityScore())
                 .liquidityScore(a.getLiquidityScore())
-                .factorScore(a.getFactorScore())
                 .hedgeFundAlpha(a.getHedgeFundAlpha())
                 .goodEntry(a.getGoodEntry())
                 .updatedAt(a.getUpdatedAt())

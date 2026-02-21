@@ -42,53 +42,56 @@ public class DataScheduler {
     private final DigitalCurrencyDailyService service;
     private final IndexPriceServiceImpl indexPriceService;
 
-    @Scheduled(cron = "0 33 14 * * FRI")
+    @Scheduled(cron = "0 00 2 * * SAT")
     public void initDataSet() throws ParseException, IOException {
-       // marketService.loadListingStatus();
-       // marketService.loadDailyPrices();
-       // companyOverviewService.loadOverview();
-       // balanceSheetService.loadBalanceSheet();
-       // cashFlowService.loadCashFlow();
-       // incomeStatementService.loadIncomeStatement();
-       // dividendService.loadDividends();
-       // insiderTransactionService.loadInsiderTransactions();
-
-       // sharesOutstandingService.loadSharesOutstanding();
-       // equityTechnicalIndicatorService.loadSMA();
-
-       // topGainersLosersService.loadTopGainersLosers();
-
-
+        marketService.loadListingStatus();
+        marketService.loadDailyPrices();
+        companyOverviewService.loadOverview();
+        balanceSheetService.loadBalanceSheet();
+        cashFlowService.loadCashFlow();
+        incomeStatementService.loadIncomeStatement();
+         dividendService.loadDividends();
+        insiderTransactionService.loadInsiderTransactions();
+        sharesOutstandingService.loadSharesOutstanding();
         realtimeOptionService.loadRealtimeOptions();
-
-       // fxDailyService.loadFxDaily();
+       // equityTechnicalIndicatorService.loadSMA();
         //forexTechnicalIndicatorService.loadSMA();
 
-      //  goldSilverHistoryService.loadHistory();
-       // commodityService.loadCommodity();
 
 
-       // digitalCurrencyDailyService.loadDigitalCurrencyDaily();
 
+    }
+    @Scheduled(cron = "0 0 06 * * MON-FRI")
+    public void dailyMorning(){
+        topGainersLosersService.loadTopGainersLosers();
+        fxDailyService.loadFxDaily();
+        goldSilverHistoryService.loadHistory();
+        commodityService.loadCommodity();
+        digitalCurrencyDailyService.loadDigitalCurrencyDaily();
+        earningsCalendarService.loadEarningsCalendar("3month");
+        ipoCalendarService.loadIpoCalendar();
+    }
 
-       // earningsCalendarService.loadEarningsCalendar("3month");
-       // ipoCalendarService.loadIpoCalendar();
-
-
+    @Scheduled(cron = "0 0 17 * * MON-FRI")
+    public void endOfDay() {
+        // Fetch daily market data
+        marketService.loadDailyPrices();
+        realtimeOptionService.loadRealtimeOptions();
+        // You can add more services here if needed
+        System.out.println("End-of-day tasks executed at " + java.time.LocalDateTime.now());
     }
 
     //@Scheduled(cron = "0 * 7-19 * * 1-5") // every minute, 7AM-7PM, Mon-Fri
     public void intradayUpdate() throws ParseException, IOException {
-       // service.loadDigitalCurrencyIntraday();
-       // fxDailyService.loadFxIntraday();
-       // indexPriceService.fetchAllPopularIndicesIntraday();
-
+        service.loadDigitalCurrencyIntraday();
+        fxDailyService.loadFxIntraday();
+        indexPriceService.fetchAllPopularIndicesIntraday();
         try {
             TimeUnit.SECONDS.sleep(1);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
-       // marketService.fetchBulkIntraday();
+        marketService.fetchBulkIntraday();
     }
 }

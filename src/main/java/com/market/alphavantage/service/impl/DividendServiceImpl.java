@@ -41,6 +41,7 @@ public class DividendServiceImpl implements DividendService {
 
     @Override
     public void loadDividends() {
+        repository.deleteAll();
         List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
         int total = stocks.size();
 

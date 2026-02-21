@@ -43,6 +43,7 @@ public class FxDailyServiceImpl implements FxDailyService {
 
     @Override
     public void loadFxDaily() {
+        repository.deleteAll();
         FX_SYMBOLS.forEach(symbol -> fetchDetails(symbol, BASE_CURRENCY));
     }
 

@@ -38,6 +38,7 @@ public class SharesOutstandingServiceImpl implements SharesOutstandingService {
 
     @Override
     public void loadSharesOutstanding() {
+        repository.deleteAll();
         List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
         int total = stocks.size();
 

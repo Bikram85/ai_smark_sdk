@@ -37,6 +37,7 @@ public class TopGainersLosersServiceImpl implements TopGainersLosersService {
 
     @Override
     public void loadTopGainersLosers() {
+        repository.deleteAll();
         logInfo("Starting loadTopGainersLosers...");
 
         String url = baseUrl + "?function=TOP_GAINERS_LOSERS&apikey=" + apiKey;

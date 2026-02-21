@@ -3,6 +3,7 @@ package com.market.alphavantage.service.impl;
 import com.market.alphavantage.dto.RealtimeOptionDTO;
 import com.market.alphavantage.entity.RealtimeOption;
 import com.market.alphavantage.entity.Symbol;
+import com.market.alphavantage.repository.OptionDashboardRepository;
 import com.market.alphavantage.repository.RealtimeOptionRepository;
 import com.market.alphavantage.repository.SymbolRepository;
 import com.market.alphavantage.service.RealtimeOptionService;
@@ -32,6 +33,7 @@ public class RealtimeOptionServiceImpl implements RealtimeOptionService {
     private final RealtimeOptionRepository repository;
     private final RestTemplate restTemplate;
     private final SymbolRepository symbolRepo;
+    private final OptionDashboardRepository optionDashboardRepository;
 
     @Value("${alphavantage.baseUrl}")
     private String baseUrl;
@@ -46,6 +48,7 @@ public class RealtimeOptionServiceImpl implements RealtimeOptionService {
 
     @Override
     public void loadRealtimeOptions() {
+        optionDashboardRepository.deleteAll();
         List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
         int total = stocks.size();
 

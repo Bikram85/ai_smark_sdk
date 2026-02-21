@@ -40,6 +40,7 @@ public class EarningsCalendarServiceImpl implements EarningsCalendarService {
 
     @Override
     public void loadEarningsCalendar() {
+        repository.deleteAll();
         String url = baseUrl
                 + "?function=EARNINGS_CALENDAR"
                 + "&horizon=" + "3month"

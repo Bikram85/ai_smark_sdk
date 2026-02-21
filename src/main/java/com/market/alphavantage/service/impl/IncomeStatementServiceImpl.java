@@ -2,6 +2,7 @@ package com.market.alphavantage.service.impl;
 
 import com.market.alphavantage.dto.IncomeStatementDTO;
 import com.market.alphavantage.entity.Symbol;
+import com.market.alphavantage.repository.IncomeStatementRepository;
 import com.market.alphavantage.repository.SymbolRepository;
 import com.market.alphavantage.service.IncomeStatementService;
 import com.market.alphavantage.service.impl.processor.IncomeStatementProcessor;
@@ -23,11 +24,13 @@ public class IncomeStatementServiceImpl implements IncomeStatementService {
     @Autowired
     public IncomeStatementProcessor processor;
     private final SymbolRepository symbolRepo;
+    private final IncomeStatementRepository repository;
 
     private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Override
     public void loadIncomeStatement() {
+        repository.deleteAll();
         List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
 
         int total = stocks.size();

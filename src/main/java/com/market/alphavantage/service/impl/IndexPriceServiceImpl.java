@@ -33,6 +33,7 @@ public class IndexPriceServiceImpl {
      * Fetches all popular indices listed in IndexConstants and saves in DB.
      */
     public void fetchAllPopularIndices() {
+        repository.deleteAll();
         for (IndexConstants idx : IndexConstants.POPULAR_INDICES) {
             try {
                 System.out.println("Fetching: " + idx.getSymbol() + " (" + idx.getCountry() + ")");

@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -25,7 +26,7 @@ public class AnalyticsProcessor {
     private final InsiderTransactionRepository insiderRepo;
     private final AnalyticsRepository analyticsRepo;
 
-    /* ================= CORE ================= */
+    /* ================= CORE SYMBOL PROCESSING ================= */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processSymbol(Symbol sym) {
         String symbol = sym.getSymbol();
@@ -33,6 +34,7 @@ public class AnalyticsProcessor {
         a.setSymbol(symbol);
         a.setExchange(sym.getExchange());
 
+        // Fetch data
         StockPrice price = priceRepo.findById(symbol).orElse(null);
         OptionDashboard opt = optionRepo.findTopBySymbolOrderByIdDesc(symbol).orElse(null);
         CompanyOverview co = companyRepo.findById(symbol).orElse(null);
@@ -74,7 +76,6 @@ public class AnalyticsProcessor {
             a.setRevenueUpYears(AnalyticsMath.consecutiveUp(inc.getAnnualTotalRevenue()));
             a.setGrossProfitUpYears(AnalyticsMath.consecutiveUp(inc.getAnnualGrossProfit()));
             a.setNetIncomeUpYears(AnalyticsMath.consecutiveUp(inc.getAnnualNetIncome()));
-
             a.setRevenueUpQuarters(AnalyticsMath.consecutiveUp(inc.getQuarterlyTotalRevenue()));
             a.setGrossProfitUpQuarters(AnalyticsMath.consecutiveUp(inc.getQuarterlyGrossProfit()));
             a.setNetIncomeUpQuarters(AnalyticsMath.consecutiveUp(inc.getQuarterlyNetIncome()));
@@ -92,34 +93,33 @@ public class AnalyticsProcessor {
         }
 
         /* ===== CORE SCORES ===== */
-        double momentum = round(momentumScore(price));
+        double momentum   = round(momentumScoreRSI(price));
         double fundamental = round(fundamentalScore(co, inc));
-        double risk = round(riskScore(co, bal));
-        double insiderScore = round(insiderScore(insider));
-        double optionsScore = round(optionsScore(opt));
-        double overall = round(overallScore(fundamental, momentum, optionsScore, insiderScore, risk));
+        double risk       = round(riskScore(co, bal));
+        double insiderSc  = round(insiderScore(insider));
+        double optionsSc  = round(optionsScore(opt, price));
+
+        double overall = round(overallScore(fundamental, momentum, optionsSc, insiderSc, risk));
 
         a.setMomentumScore(momentum);
         a.setFundamentalScore(fundamental);
         a.setRiskScore(risk);
-        a.setInsiderScore(insiderScore);
-        a.setOptionsScore(optionsScore);
+        a.setInsiderScore(insiderSc);
+        a.setOptionsScore(optionsSc);
         a.setOverallScore(overall);
         a.setRecommendation(recommendation(overall));
 
         /* ===== HEDGE FUND ENGINE ===== */
         double smartMoney = round(smartMoneyScore(price, insider, opt));
-        double gamma = round(gammaExposureScore(opt));
+        double gamma      = round(gammaExposureScore(opt, price));
         double volatility = round(volatilityScore(price));
-        double liquidity = round(liquidityScore(price));
-        double factor = round(factorScore(co));
-        double alpha = round(hedgeFundAlpha(overall, smartMoney, gamma, volatility, liquidity, factor));
+        double liquidity  = round(liquidityScore(price));
+        double alpha      = round(hedgeFundAlpha(overall, smartMoney, gamma, volatility, liquidity));
 
         a.setSmartMoneyScore(smartMoney);
         a.setGammaExposureScore(gamma);
         a.setVolatilityScore(volatility);
         a.setLiquidityScore(liquidity);
-        a.setFactorScore(factor);
         a.setHedgeFundAlpha(alpha);
         a.setGoodEntry(goodEntry(momentum, smartMoney, gamma));
 
@@ -135,14 +135,25 @@ public class AnalyticsProcessor {
                 .doubleValue();
     }
 
-    /* ================= CORE ALGORITHMS ================= */
-    private double momentumScore(StockPrice p) {
-        if (p == null || p.getClose() == null || p.getClose().length < 20) return 50;
-        double last = p.getClose()[p.getClose().length - 1];
-        double prev = p.getClose()[p.getClose().length - 20];
-        if (prev == 0) return 50;
-        double change = (last - prev) / prev * 100;
-        return Math.min(100, Math.max(0, (change + 20) * 2));
+    private double round2(double val) {
+        return Math.round(val * 100.0) / 100.0;
+    }
+
+    /* ================== CORE SCORES ================== */
+    private double momentumScoreRSI(StockPrice p) {
+        int period = 14;
+        if (p == null || p.getClose() == null || p.getClose().length <= period) return 50;
+        Double[] close = p.getClose();
+        double gain = 0, loss = 0;
+        for (int i = close.length - period; i < close.length; i++) {
+            double change = close[i] - close[i - 1];
+            if (change > 0) gain += change; else loss += -change;
+        }
+        double avgGain = gain / period;
+        double avgLoss = loss / period;
+        double rs = avgLoss == 0 ? 1e6 : avgGain / avgLoss;
+        double rsi = 100 - (100 / (1 + rs));
+        return round2(rsi);
     }
 
     private double fundamentalScore(CompanyOverview co, IncomeStatement inc) {
@@ -180,15 +191,36 @@ public class AnalyticsProcessor {
         return round((double) buy / total * 100);
     }
 
-    private double optionsScore(OptionDashboard o) {
+    /* ================== OPTIONS ================== */
+    private double optionsScore(OptionDashboard o, StockPrice price) {
         if (o == null) return 50;
         double score = 50;
+
+        // PCR adjustment
         if (o.getPcr() != null) {
-            if (o.getPcr() < 0.8) score += 20;
-            if (o.getPcr() > 1.3) score -= 20;
+            double pcrEffect = (1 - o.getPcr()) * 50;
+            score += pcrEffect;
         }
-        if ("BULLISH".equalsIgnoreCase(o.getBias())) score += 20;
-        return Math.min(100, Math.max(0, round(score)));
+
+        // Bias adjustment
+        if (o.getBias() != null) {
+            switch(o.getBias().toUpperCase()) {
+                case "EXTREME_GREED": score += 20; break;
+                case "CALL_HEAVY":    score += 10; break;
+                case "BALANCED":      score += 0;  break;
+                case "PUT_HEAVY":     score -= 10; break;
+                case "EXTREME_FEAR":  score -= 20; break;
+            }
+        }
+
+        // Adjust if spot is near support/resistance
+        if (price != null && price.getClose() != null && price.getClose().length > 0) {
+            double spot = price.getClose()[price.getClose().length - 1];
+            if (o.getSupport() != null && Math.abs(spot - o.getSupport()) / spot < 0.02) score += 5;
+            if (o.getResistance() != null && Math.abs(o.getResistance() - spot) / spot < 0.02) score -= 5;
+        }
+
+        return Math.min(100, Math.max(0, round2(score)));
     }
 
     private double overallScore(double f, double m, double o, double i, double r) {
@@ -203,17 +235,36 @@ public class AnalyticsProcessor {
         return "STRONG SELL";
     }
 
-    /* ===== HEDGE FUND ENGINE ===== */
+    /* ================== HEDGE FUND ENGINE ================== */
     private double smartMoneyScore(StockPrice p, InsiderTransaction t, OptionDashboard o) {
-        return round(momentumScore(p) * 0.5 + insiderScore(t) * 0.3 + optionsScore(o) * 0.2);
+        return round(momentumScoreRSI(p) * 0.5 + insiderScore(t) * 0.3 + optionsScore(o, p) * 0.2);
     }
 
-    private double gammaExposureScore(OptionDashboard o) {
-       /* if (o == null) return 50;
-        long calls = o.getTotalCallOI(), puts = o.getTotalPutOI();
-        if (calls + puts == 0) return 50;
-        return round((double) calls / (calls + puts) * 100);*/
-        return 0.0;
+    private double gammaExposureScore(OptionDashboard o, StockPrice price) {
+        if (o == null || price == null || price.getClose() == null || price.getClose().length == 0) return 50;
+        double spot = price.getClose()[price.getClose().length - 1];
+
+        double netGEX = 0;
+        if (o.getCallOpenInterest() != null && o.getCallGamma() != null && o.getCallStrikePrice() != null) {
+            for (int i = 0; i < o.getCallOpenInterest().length; i++) {
+                if (o.getCallOpenInterest()[i] != null && o.getCallGamma()[i] != null && o.getCallStrikePrice()[i] != null) {
+                    double distance = Math.max(0, o.getCallStrikePrice()[i] - spot);
+                    netGEX += o.getCallGamma()[i] * o.getCallOpenInterest()[i] / (distance + 1);
+                }
+            }
+        }
+
+        if (o.getPutOpenInterest() != null && o.getPutGamma() != null && o.getPutStrikePrice() != null) {
+            for (int i = 0; i < o.getPutOpenInterest().length; i++) {
+                if (o.getPutOpenInterest()[i] != null && o.getPutGamma()[i] != null && o.getPutStrikePrice()[i] != null) {
+                    double distance = Math.max(0, spot - o.getPutStrikePrice()[i]);
+                    netGEX -= o.getPutGamma()[i] * o.getPutOpenInterest()[i] / (distance + 1);
+                }
+            }
+        }
+
+        double score = 50 + (netGEX / (Math.abs(netGEX) + 1) * 50);
+        return Math.max(0, Math.min(100, round2(score)));
     }
 
     private double volatilityScore(StockPrice p) {
@@ -222,36 +273,31 @@ public class AnalyticsProcessor {
         double var = 0;
         for (int i = p.getClose().length - 10; i < p.getClose().length; i++)
             var += Math.pow(p.getClose()[i] - avg, 2);
-        return Math.min(100, round(Math.sqrt(var / 10) * 10));
+        double stdDev = Math.sqrt(var / 10);
+        return round2(50 + Math.min(50, (stdDev / 5) * 50));
     }
 
     private double liquidityScore(StockPrice p) {
         if (p == null) return 50;
-        double avg = AnalyticsMath.avgLastN(p.getVolume(), 20);
-        if (avg > 50_000_000) return 100;
-        if (avg > 10_000_000) return 80;
-        if (avg > 2_000_000) return 60;
-        if (avg > 500_000) return 40;
+        if (p.getClose() == null || p.getVolume() == null) return 50;
+        double avgDollarVolume = AnalyticsMath.avgLastN(p.getVolume(), 20) *
+                p.getClose()[p.getClose().length - 1];
+        if (avgDollarVolume > 50_000_000) return 100;
+        if (avgDollarVolume > 10_000_000) return 80;
+        if (avgDollarVolume > 2_000_000) return 60;
+        if (avgDollarVolume > 500_000) return 40;
         return 20;
     }
 
-    private double factorScore(CompanyOverview co) {
-        if (co == null) return 50;
-        double score = 50;
-        if (co.getReturnOnEquityTTM() != null && co.getReturnOnEquityTTM() > 15) score += 20;
-        if (co.getPeRatio() != null && co.getPeRatio() < 25) score += 15;
-        return Math.min(100, round(score));
-    }
-
-    private double hedgeFundAlpha(double overall, double smart, double gamma, double vol, double liq, double factor) {
-        return round(overall * 0.30 + smart * 0.20 + gamma * 0.10 + liq * 0.15 + factor * 0.15 + (100 - vol) * 0.10);
+    private double hedgeFundAlpha(double overall, double smart, double gamma, double vol, double liq) {
+        return round(overall * 0.30 + smart * 0.20 + gamma * 0.10 + liq * 0.15 + (100 - vol) * 0.10);
     }
 
     private boolean goodEntry(double momentum, double smart, double gamma) {
         return momentum > 60 && smart > 65 && gamma > 50;
     }
 
-    /* ===== HELPERS ===== */
+    /* ================== HELPERS ================== */
     private String marketCapCategory(Long cap) {
         if (cap == null) return "Unknown";
         if (cap < 50_000_000) return "Nano Cap";

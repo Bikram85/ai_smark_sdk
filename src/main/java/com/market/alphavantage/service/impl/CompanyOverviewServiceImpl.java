@@ -37,6 +37,7 @@ public class CompanyOverviewServiceImpl implements CompanyOverviewService {
 
     @Override
     public void loadOverview() {
+        repo.deleteAll();
         List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
        // List<Symbol> etfs = symbolRepo.findByAssetType("ETF");
 

@@ -1,8 +1,11 @@
 package com.market.alphavantage.service.impl.processor;
 
 import com.market.alphavantage.entity.OptionDashboard;
+import com.market.alphavantage.entity.StockPrice;
 import com.market.alphavantage.repository.OptionDashboardRepository;
+import com.market.alphavantage.repository.StockPriceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -23,7 +26,11 @@ import java.util.stream.Collectors;
 public class OptionProcessor {
 
     private final OptionDashboardRepository repository;
+    private final StockPriceRepository stockPriceRepository;
     private final RestTemplate restTemplate;
+
+    @Autowired
+    RealTimeStockServiceProcessor realTimeStockServiceProcessor;
 
     @Value("${alphavantage.baseUrl}")
     private String baseUrl;
@@ -144,13 +151,17 @@ public class OptionProcessor {
             dashboard.setPutVega(putVegaList.toArray(new Double[0]));
             dashboard.setPutRho(putRhoList.toArray(new Double[0]));
 
-            calculateMetrics(dashboard);
+
+            StockPrice price = stockPriceRepository.findById(symbol).orElse(null);
+            if ( price != null || price.getClose() != null || price.getClose().length != 0) {
+                calculateMetrics(dashboard, price.getClose()[price.getClose().length - 1]);
+            }
 
             repository.save(dashboard);
         }
     }
 
-    private void calculateMetrics(OptionDashboard dash) {
+    private void calculateMetrics(OptionDashboard dash, double spot) {
 
         Long[] callOI = dash.getCallOpenInterest();
         Long[] putOI = dash.getPutOpenInterest();
@@ -166,30 +177,66 @@ public class OptionProcessor {
 
         double resistance = 0;
         double support = 0;
+
         long maxCallOI = 0;
         long maxPutOI = 0;
 
+        // 🔴 RESISTANCE → Highest Call OI ABOVE spot
         for (int i = 0; i < callOI.length; i++) {
             totalCallOI += callOI[i];
             totalCallVol += callVol[i];
-            if (callOI[i] > maxCallOI) {
+
+            if (callStrikes[i] > spot && callOI[i] > maxCallOI) {
                 maxCallOI = callOI[i];
                 resistance = callStrikes[i];
             }
         }
 
+        // Fallback: nearest strike above spot
+        if (resistance == 0) {
+            double nearestAbove = Double.MAX_VALUE;
+            for (double strike : callStrikes) {
+                if (strike > spot && strike < nearestAbove) {
+                    nearestAbove = strike;
+                }
+            }
+            if (nearestAbove != Double.MAX_VALUE) {
+                resistance = nearestAbove;
+            } else {
+                resistance = spot;
+            }
+        }
+
+        // 🟢 SUPPORT → Highest Put OI BELOW spot
         for (int i = 0; i < putOI.length; i++) {
             totalPutOI += putOI[i];
             totalPutVol += putVol[i];
-            if (putOI[i] > maxPutOI) {
+
+            if (putStrikes[i] < spot && putOI[i] > maxPutOI) {
                 maxPutOI = putOI[i];
                 support = putStrikes[i];
+            }
+        }
+
+        // Fallback: nearest strike below spot
+        if (support == 0) {
+            double nearestBelow = 0;
+            for (double strike : putStrikes) {
+                if (strike < spot && strike > nearestBelow) {
+                    nearestBelow = strike;
+                }
+            }
+            if (nearestBelow != 0) {
+                support = nearestBelow;
+            } else {
+                support = spot;
             }
         }
 
         dash.setResistance(round2(resistance));
         dash.setSupport(round2(support));
 
+        // ---- Ratios ----
         double oiRatio = totalPutOI == 0 ? 0 : (double) totalCallOI / totalPutOI;
         double volRatio = totalPutVol == 0 ? 0 : (double) totalCallVol / totalPutVol;
         double pcr = totalCallOI == 0 ? 0 : (double) totalPutOI / totalCallOI;
@@ -198,9 +245,12 @@ public class OptionProcessor {
         dash.setCallPutVolumeRatio(round2(volRatio));
         dash.setPcr(round2(pcr));
 
-        if (pcr > 1.2) dash.setBias("BULLISH");
-        else if (pcr < 0.8) dash.setBias("BEARISH");
-        else dash.setBias("RANGE");
+        // ---- Bias Logic ----
+        if (pcr > 1.3) dash.setBias("EXTREME_FEAR");
+        else if (pcr > 1.0) dash.setBias("PUT_HEAVY");
+        else if (pcr < 0.7) dash.setBias("EXTREME_GREED");
+        else if (pcr < 1.0) dash.setBias("CALL_HEAVY");
+        else dash.setBias("BALANCED");
 
         dash.setMaxPain(round2(calculateMaxPain(dash)));
     }

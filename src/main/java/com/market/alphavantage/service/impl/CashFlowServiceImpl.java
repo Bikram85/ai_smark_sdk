@@ -3,6 +3,7 @@ package com.market.alphavantage.service.impl;
 import com.market.alphavantage.dto.CashFlowDTO;
 import com.market.alphavantage.entity.CashFlow;
 import com.market.alphavantage.entity.Symbol;
+import com.market.alphavantage.repository.CashFlowRepository;
 import com.market.alphavantage.repository.SymbolRepository;
 import com.market.alphavantage.service.CashFlowService;
 import com.market.alphavantage.service.impl.processor.CashFlowProcessor;
@@ -23,11 +24,12 @@ public class CashFlowServiceImpl implements CashFlowService {
    @Autowired
     public CashFlowProcessor processor;
     private final SymbolRepository symbolRepo;
-
+    private final CashFlowRepository repository;
     private static final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Override
     public void loadCashFlow() {
+        repository.deleteAll();
         List<Symbol> stocks = symbolRepo.findByAssetType("Stock");
 
         AtomicInteger processed = new AtomicInteger();

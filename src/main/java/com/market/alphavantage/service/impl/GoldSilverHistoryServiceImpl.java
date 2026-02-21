@@ -41,6 +41,7 @@ public class GoldSilverHistoryServiceImpl implements GoldSilverHistoryService {
 
     @Override
     public void loadHistory() {
+        repository.deleteAll();
         GOLDSILVER_SYMBOLS.forEach(symbol -> fetchDetails(symbol, INTERVAL));
     }
 

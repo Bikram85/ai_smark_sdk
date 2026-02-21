@@ -51,6 +51,7 @@ public class CommodityServiceImpl implements CommodityService {
 
     @Override
     public void loadCommodity() {
+        repository.deleteAll();
         COMMODITIES_SYMBOLS.forEach(symbol -> fetchDetails(symbol, OCURRENCE));
     }
 
